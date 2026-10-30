@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Franklin Tiffin Room — Karnataka-style South Indian Catering, NJ</title>
+  <meta name="description" content="Franklin Tiffin Room: authentic Karnataka-style vegetarian South Indian home catering and Live Dose Station in New Jersey. Order on WhatsApp at 1-234-FTR-DOSE.">
+  <meta property="og:title" content="Franklin Tiffin Room">
+  <meta property="og:description" content="Your home-style cooking chef — Karnataka-style vegetarian catering and a Live Dose Station for your event.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://franklintiffinroom.com/">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #fbf6ec;
+      --paper: #ffffff;
+      --ink: #2b2118;
+      --muted: #6b5d4f;
+      --leaf: #2f5d3a;
+      --leaf-dark: #224530;
+      --turmeric: #e3a51a;
+      --chili: #a8321e;
+      --line: #e8dcc6;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--cream);
+      color: var(--ink);
+      font: 400 17px/1.6 "Inter", system-ui, -apple-system, sans-serif;
+    }
+    a { color: inherit; }
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+    h1, h2, h3 { font-family: "Fraunces", Georgia, serif; line-height: 1.15; margin: 0 0 .5em; }
+    h2 { font-size: clamp(1.7rem, 3.5vw, 2.3rem); }
+    h3 { font-size: 1.25rem; }
+    p { margin: 0 0 1em; }
+
+    /* Nav */
+    header.nav {
+      position: sticky; top: 0; z-index: 10;
+      background: rgba(251, 246, 236, .92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+    }
+    header.nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .brand { font-family: "Fraunces", Georgia, serif; font-weight: 700; font-size: 1.2rem; text-decoration: none; }
+    .brand span { color: var(--chili); }
+    nav a { text-decoration: none; margin-left: 22px; font-weight: 500; color: var(--muted); font-size: .95rem; }
+    nav a:hover { color: var(--ink); }
+    @media (max-width: 640px) { nav a:not(.nav-cta) { display: none; } }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 24px; border-radius: 999px;
+      font-weight: 600; text-decoration: none; font-size: 1rem;
+      transition: transform .15s ease, background .15s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-wa { background: var(--leaf); color: #fff; }
+    .btn-wa:hover { background: var(--leaf-dark); }
+    .btn-ghost { border: 1.5px solid var(--ink); color: var(--ink); }
+    .nav-cta { padding: 8px 16px; font-size: .9rem; background: var(--leaf); color: #fff !important; border-radius: 999px; }
+
+    /* Hero */
+    .hero { padding: 72px 0 64px; position: relative; overflow: hidden; }
+    .hero::after {
+      content: ""; position: absolute; right: -140px; top: -80px;
+      width: 460px; height: 460px; border-radius: 50%;
+      background: radial-gradient(circle at 40% 40%, #f3c552 0%, var(--turmeric) 45%, transparent 70%);
+      opacity: .35; z-index: -1;
+    }
+    .eyebrow { text-transform: uppercase; letter-spacing: .14em; font-size: .8rem; font-weight: 600; color: var(--chili); margin-bottom: 14px; }
+    .hero h1 { font-size: clamp(2.4rem, 6vw, 4rem); max-width: 14ch; }
+    .hero .lede { font-size: 1.2rem; color: var(--muted); max-width: 52ch; margin-bottom: 28px; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+    .phone-big { margin-top: 26px; font-family: "Fraunces", Georgia, serif; font-size: 1.35rem; }
+    .phone-big small { display: block; font-family: "Inter", sans-serif; font-size: .85rem; color: var(--muted); }
+
+    section { padding: 64px 0; }
+    .alt { background: var(--paper); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+
+    /* Offer cards */
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 22px; }
+    .card {
+      background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 28px;
+    }
+    .alt .card { background: var(--cream); }
+    .card .tag {
+      display: inline-block; font-size: .75rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+      background: #fdf0cf; color: #8a5b00; padding: 4px 10px; border-radius: 999px; margin-bottom: 14px;
+    }
+    .card ul { margin: 0; padding-left: 1.1em; color: var(--muted); }
+
+    /* Menu */
+    .menu-list {
+      columns: 3 220px; column-gap: 32px;
+      list-style: none; padding: 0; margin: 24px 0 0;
+    }
+    .menu-list li {
+      break-inside: avoid; padding: 10px 0; border-bottom: 1px dashed var(--line);
+      font-weight: 500;
+    }
+    .note { color: var(--muted); font-size: .95rem; margin-top: 20px; }
+
+    /* Steps */
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; counter-reset: s; margin-top: 24px; }
+    .step { counter-increment: s; }
+    .step::before {
+      content: counter(s);
+      display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+      background: var(--turmeric); color: var(--ink); font-weight: 700; margin-bottom: 12px;
+      font-family: "Fraunces", Georgia, serif;
+    }
+    .step p { color: var(--muted); }
+
+    /* CTA band */
+    .band { background: var(--leaf); color: #fff; text-align: center; }
+    .band h2 { color: #fff; }
+    .band p { color: #dbe8dd; }
+    .band .btn-wa { background: #fff; color: var(--leaf-dark); }
+
+    footer { padding: 32px 0 48px; color: var(--muted); font-size: .9rem; }
+    footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+
+    svg.wa { width: 20px; height: 20px; fill: currentColor; }
+  </style>
+</head>
+<body>
+
+  <header class="nav">
+    <div class="wrap">
+      <a class="brand" href="#top">Franklin <span>Tiffin</span> Room</a>
+      <nav>
+        <a href="#offer">What we do</a>
+        <a href="#menu">Menu</a>
+        <a href="#how">How to order</a>
+        <a class="nav-cta" href="https://wa.me/12343873673?text=hi">Order</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="wrap">
+        <div class="eyebrow">Karnataka-style · Vegetarian · New Jersey</div>
+        <h1>Your home-style cooking chef.</h1>
+        <p class="lede">Authentic South Indian food the way it's made at home in Karnataka — catered trays for your gathering, or a Live Dose Station making fresh masale dose right at your event.</p>
+        <div class="hero-actions">
+          <a class="btn btn-wa" href="https://wa.me/12343873673?text=hi">
+            <svg class="wa" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91A9.86 9.86 0 0 0 12.04 2zm5.8 14.13c-.25.69-1.45 1.32-2 1.37-.51.05-.99.24-3.33-.69-2.8-1.11-4.6-3.98-4.74-4.17-.14-.18-1.13-1.5-1.13-2.87s.72-2.04.97-2.32c.26-.28.56-.35.75-.35l.54.01c.17 0 .41-.07.64.49.25.58.82 2.01.89 2.16.07.14.12.31.02.5-.09.18-.14.3-.28.46l-.42.49c-.14.14-.29.29-.12.57.16.28.73 1.2 1.57 1.95 1.08.96 1.99 1.26 2.27 1.4.28.14.45.12.61-.07.17-.19.71-.83.9-1.11.18-.28.37-.23.62-.14.25.09 1.6.76 1.88.9.28.14.46.21.53.32.07.12.07.67-.18 1.36z"/></svg>
+            Order on WhatsApp
+          </a>
+          <a class="btn btn-ghost" href="#menu">See the menu</a>
+        </div>
+        <div class="phone-big">
+          1-234-FTR-DOSE
+          <small>(234) 387-3673 · WhatsApp or call</small>
+        </div>
+      </div>
+    </section>
+
+    <section id="offer" class="alt">
+      <div class="wrap">
+        <h2>What we do</h2>
+        <p class="note" style="margin-top:0">Weekends only, by appointment.</p>
+        <div class="grid-2">
+          <div class="card">
+            <span class="tag">Catering</span>
+            <h3>South Indian Catering</h3>
+            <p>Home-style Karnataka dishes prepared fresh and delivered or ready for pickup — rice bhaths, saaru, palya, vade, and sweets for your family gathering, pooja, or party.</p>
+            <ul>
+              <li>Delivery or pickup</li>
+              <li>Pick a date and time slot when you order</li>
+            </ul>
+          </div>
+          <div class="card">
+            <span class="tag">On-site</span>
+            <h3>Live Dose Station</h3>
+            <p>Our crew sets up at your event and makes Mysore Masale Dose and Onion Dose fresh on the griddle, served hot to every guest.</p>
+            <ul>
+              <li>100 to 200 dose per event</li>
+              <li>Crew arrives early to set up and stays to wrap up</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="menu">
+      <div class="wrap">
+        <h2>On the menu</h2>
+        <p style="color:var(--muted)">All vegetarian, all made the Karnataka way.</p>
+        <ul class="menu-list">
+          <li>Bisi Bele Bhath</li>
+          <li>Mosaranna</li>
+          <li>Vangi Bhath</li>
+          <li>Saaru</li>
+          <li>Majjige HuLi</li>
+          <li>Huli</li>
+          <li>Palya</li>
+          <li>Kosambari</li>
+          <li>Maddur Vade</li>
+          <li>Bajji / Pakoda</li>
+          <li>Ambode</li>
+          <li>Huggi with huNse gojju</li>
+          <li>Payasa</li>
+          <li>Sweet Huggi</li>
+          <li>Jamoon</li>
+          <li>Mysore Masale Dose (Live Station)</li>
+          <li>Onion Dose (Live Station)</li>
+        </ul>
+        <p class="note">Current prices and availability are in our WhatsApp menu — message us and tap "See our menu."</p>
+      </div>
+    </section>
+
+    <section id="how" class="alt">
+      <div class="wrap">
+        <h2>How to order</h2>
+        <div class="steps">
+          <div class="step">
+            <h3>Say hi on WhatsApp</h3>
+            <p>Message 1-234-FTR-DOSE and our ordering assistant opens the menu.</p>
+          </div>
+          <div class="step">
+            <h3>Build your order</h3>
+            <p>Pick dishes, delivery or pickup, and an open weekend date and time.</p>
+          </div>
+          <div class="step">
+            <h3>We confirm</h3>
+            <p>The chef personally reviews every order and sends your confirmation.</p>
+          </div>
+          <div class="step">
+            <h3>Enjoy &amp; pay</h3>
+            <p>Payment is collected in person at delivery, pickup, or your event.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="band">
+      <div class="wrap">
+        <h2>Planning a weekend gathering?</h2>
+        <p>Send us a message — we'll show you open dates.</p>
+        <a class="btn btn-wa" href="https://wa.me/12343873673?text=hi">Order on WhatsApp</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div>© <span id="yr">2026</span> Franklin Tiffin Room · New Jersey</div>
+      <div><a href="tel:+12343873673">1-234-FTR-DOSE</a></div>
+    </div>
+  </footer>
+
+  <script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+</body>
+</html>
