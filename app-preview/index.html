@@ -1,0 +1,1129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>FTR App Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,700;1,9..144,600&family=Josefin+Sans:wght@600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: an iPhone-sized frame running the FTR app on the left, the chef's WhatsApp side on the right; stacks on narrow screens.
+   Brand: the FTR catering flyers - cream paper, forest green, chili red, marigold gold; Fraunces / Josefin Sans / Outfit. */
+:root {
+  --bg: #efe6d3; --page: #fffbf3; --surface: #ffffff; --surface2: #f6eedd; --line: #e8dcc4;
+  --ink: #1e3a27; --muted: #4a5a4e; --red: #c8463f; --forest: #1e3a27; --cream: #fff6e6;
+  --leaf: #1e3a27; --leaf-ink: #fff6e6; --leaf-soft: #e6ede4;
+  --tur: #f2c14e; --tur-line: #e3a72f; --tur-soft: #fbefd0; --tur-ink: #7a5200; --chili: #c8463f; --chili-soft: #f8ddd6; --bad: #b23a2c; --veg: #2e7d3a;
+  --frame: #1e3a27; --wa: #f7f0e1; --wa-bubble: #ffffff;
+  --f-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --f-logo: "Josefin Sans", "Futura", "Century Gothic", sans-serif;
+  --f-body: "Outfit", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0b120e; --page: #111a14; --surface: #18241c; --surface2: #213027; --line: #2f3f34;
+  --ink: #fff6e6; --muted: #b3bcaf; --red: #e8675e; --leaf: #f2c14e; --leaf-ink: #1e3a27; --leaf-soft: #22362a;
+  --tur-soft: #3a2f14; --tur-ink: #f6d38a; --chili: #e8675e; --chili-soft: #43231d; --bad: #f08a7c; --veg: #6cc196;
+  --frame: #000000; --wa: #141e18; --wa-bubble: #1c2a21; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0b120e; --page: #111a14; --surface: #18241c; --surface2: #213027; --line: #2f3f34;
+  --ink: #fff6e6; --muted: #b3bcaf; --red: #e8675e; --leaf: #f2c14e; --leaf-ink: #1e3a27; --leaf-soft: #22362a;
+  --tur-soft: #3a2f14; --tur-ink: #f6d38a; --chili: #e8675e; --chili-soft: #43231d; --bad: #f08a7c; --veg: #6cc196;
+  --frame: #000000; --wa: #141e18; --wa-bubble: #1c2a21; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--f-body); -webkit-font-smoothing: antialiased; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--leaf); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 20px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.intro { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px 20px; margin-bottom: 18px; }
+.intro h1 { font: 700 28px/1.1 var(--f-display); margin: 0; text-wrap: balance; }
+.intro p { margin: 4px 0 0; color: var(--muted); max-width: 62ch; }
+.stage { display: grid; grid-template-columns: 400px minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+
+/* phone */
+.phone { width: 100%; max-width: 400px; margin: 0 auto; background: var(--frame); border-radius: 54px; padding: 12px; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+.screen { position: relative; height: 820px; max-height: calc(100vh - 60px); min-height: 640px; border-radius: 43px; overflow: hidden; background: var(--page); display: flex; flex-direction: column; }
+.status { height: 46px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 28px 0 34px; font-weight: 700; font-size: 14px; background: var(--page); position: relative; z-index: 3; }
+.island { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); width: 112px; height: 30px; border-radius: 20px; background: #000; }
+.nav { flex: none; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; background: var(--page); border-bottom: 1px solid transparent; }
+.nav .title { flex: 1; text-align: center; font-weight: 700; font-size: 16px; }
+.nav .side { min-width: 64px; display: flex; }
+.nav .side.r { justify-content: flex-end; }
+.link { background: none; border: 0; padding: 6px 0; color: var(--leaf); font-weight: 600; }
+.body { flex: 1; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+.tabs { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border-top: 1px solid var(--line); padding: 6px 0 22px; }
+.tab { background: none; border: 0; display: grid; justify-items: center; gap: 2px; font-size: 10.5px; font-weight: 600; color: var(--muted); position: relative; }
+.tab svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tab.on { color: var(--leaf); }
+.badge { position: absolute; top: -2px; left: calc(50% + 6px); min-width: 18px; height: 18px; border-radius: 9px; background: var(--chili); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; padding: 0 5px; }
+
+.mark { width: 28px; height: 28px; border-radius: 24%; flex: none; background: var(--forest); color: var(--cream); font: 700 11px/1 var(--f-logo); letter-spacing: .5px; display: grid; place-items: center; position: relative; padding-top: 7px; }
+.mark::before { content: "FTR"; }
+.mark::after { content: ""; position: absolute; top: 15%; right: 14%; width: 30%; height: 16%; border-top: 2px solid #e8675e; border-right: 2px solid #e8675e; }
+.logo { display: inline-flex; flex-direction: column; align-items: center; gap: calc(var(--s) * .13); --s: 32px; }
+.logo .fr { font: 600 var(--s)/1 var(--f-logo); letter-spacing: calc(var(--s) * .065); color: var(--red); border-top: calc(var(--s) * .11) solid var(--red); border-right: calc(var(--s) * .11) solid var(--red); padding: calc(var(--s) * .13) calc(var(--s) * .26) 0 0; }
+.logo .tr { background: var(--forest); color: var(--cream); font: 700 calc(var(--s) * .48)/1 var(--f-logo); letter-spacing: calc(var(--s) * .045); padding: calc(var(--s) * .15) calc(var(--s) * .39) calc(var(--s) * .09); border-radius: calc(var(--s) * .22); }
+.tagline { font: italic 600 17px/1.25 var(--f-display); color: var(--red); text-wrap: balance; }
+.veg { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; }
+.veg i { width: 18px; height: 18px; border: 2px solid var(--veg); border-radius: 3px; display: grid; place-items: center; }
+.veg i::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--veg); }
+.pad { padding: 0 20px; }
+.h-big { font: 700 31px/1.1 var(--f-display); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.h-sec { font: 700 24px/1.15 var(--f-display); margin: 0; color: var(--red); }
+.h-card { font: 700 19px/1.2 var(--f-display); margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.spread { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+
+.dates { display: flex; gap: 10px; overflow-x: auto; padding: 0 20px 4px; scrollbar-width: none; }
+.dcard { flex: none; width: 168px; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+.dcard b { display: block; }
+.dish { width: 100%; display: flex; gap: 12px; align-items: baseline; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 14px 20px; }
+.dish .t { font: 700 18px/1.2 var(--f-display); }
+.dish .d { font-size: 13.5px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.dish .p { margin-left: auto; text-align: right; font-weight: 700; white-space: nowrap; }
+.chip { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: var(--leaf-soft); color: var(--leaf); }
+.lds { margin: 0 16px; padding: 18px; border-radius: 20px; background: var(--tur); border: 2px solid var(--tur-line); color: #1e3a27; display: flex; flex-direction: column; gap: 10px; }
+.lds .flag { color: #c8463f; font-weight: 700; font-size: 13px; letter-spacing: 1.5px; }
+.lds .btn { background: #1e3a27; color: #fff6e6; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.notice { display: flex; gap: 10px; padding: 11px 12px; border-radius: 12px; background: var(--leaf-soft); font-size: 14px; }
+.notice.warn { background: var(--tur-soft); }
+.notice.bad { background: var(--chili-soft); }
+.notice::before { content: "i"; flex: none; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: var(--leaf); color: var(--leaf-ink); }
+.notice.warn::before { content: "!"; background: var(--tur); color: #1e3a27; }
+.notice.bad::before { content: "!"; background: var(--bad); color: #fff; }
+
+.btn { width: 100%; min-height: 50px; border: 0; border-radius: 14px; background: var(--leaf); color: var(--leaf-ink); font-weight: 700; font-size: 16px; padding: 0 16px; }
+.btn.tur { background: var(--tur); color: #1e3a27; }
+.btn.soft { background: var(--leaf-soft); color: var(--leaf); font-weight: 600; min-height: 46px; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn:active:not(:disabled) { transform: scale(.98); }
+.cartbar { flex: none; padding: 8px 16px; background: var(--page); border-top: 1px solid var(--line); }
+.cartbar .btn { display: flex; justify-content: space-between; align-items: center; }
+.field { width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+textarea.field { resize: vertical; min-height: 64px; }
+.stepper { display: inline-flex; align-items: center; background: var(--surface2); border-radius: 99px; }
+.stepper button { width: 38px; height: 38px; border: 0; background: none; color: var(--leaf); font-size: 20px; font-weight: 700; }
+.stepper button:disabled { color: var(--muted); opacity: .4; }
+.stepper span { min-width: 34px; text-align: center; font-weight: 700; font-size: 17px; }
+.pick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.opt { border: 1px solid var(--line); background: var(--surface); border-radius: 14px; padding: 12px 6px; text-align: center; }
+.opt.on { background: var(--leaf); color: var(--leaf-ink); border-color: transparent; }
+.opt b { display: block; font: 700 22px/1 var(--f-display); }
+.datechips { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.datechips .opt { flex: none; width: 90px; }
+.datechips .opt b { font-size: 17px; margin-top: 2px; }
+.choice { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 14px; }
+.choice.on { border-color: var(--leaf); box-shadow: inset 0 0 0 1px var(--leaf); }
+.radio { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--muted); margin-top: 1px; }
+.choice.on .radio { border-color: var(--leaf); background: radial-gradient(circle, var(--leaf) 0 45%, transparent 50%); }
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-weight: 600; }
+.switch { flex: none; width: 50px; height: 30px; border-radius: 15px; border: 0; background: var(--line); position: relative; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: left .15s; }
+.switch.on { background: var(--leaf); }
+.switch.on::after { left: 23px; }
+.line { display: flex; gap: 10px; align-items: baseline; }
+.line .r { margin-left: auto; white-space: nowrap; }
+.pill { display: inline-block; white-space: nowrap; flex: none; font-size: 12.5px; font-weight: 600; padding: 3px 10px; border-radius: 99px; background: var(--surface2); color: var(--muted); }
+.pill.act { background: var(--tur-soft); color: var(--tur-ink); }
+.pill.good { background: var(--leaf-soft); color: var(--leaf); }
+.pill.bad { background: var(--chili-soft); color: var(--bad); }
+.ocard { width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+.ocard.act { border-color: var(--tur); }
+iframe.kitchen { flex: 1; width: 100%; border: 0; background: var(--page); }
+.tile { flex: none; width: 50px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); display: flex; flex-direction: column; align-items: center; }
+.tile b { width: 100%; text-align: center; background: var(--red); color: #fff6e6; font-size: 11px; font-weight: 700; padding: 3px 0; }
+.tile span { font: 700 22px/1.1 var(--f-display); padding-top: 2px; }
+.tile i { font-style: normal; font-size: 11px; font-weight: 600; color: var(--muted); padding-bottom: 4px; }
+.copyrow { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; background: var(--surface2); border-radius: 12px; padding: 10px 12px; }
+.copyrow .v { font-weight: 700; word-break: break-all; }
+.big-money { font: 700 34px/1 var(--f-display); }
+.bubble { display: flex; gap: 10px; align-items: flex-start; }
+.bubble .b { flex: 1; min-width: 0; background: var(--surface); border-radius: 4px 18px 18px 18px; padding: 12px 14px; white-space: pre-wrap; word-wrap: break-word; }
+.bubble.unread .b { background: var(--leaf-soft); }
+.pstep { display: flex; gap: 12px; align-items: flex-start; }
+.pnum { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--forest); color: var(--cream); display: grid; place-items: center; font: 700 15px/1 var(--f-logo); padding-top: 2px; }
+.zqr { display: block; width: 200px; max-width: 100%; margin: 0; border-radius: 10px; background: #fff; padding: 6px; image-rendering: pixelated; }
+.qr { width: 150px; height: 150px; margin: 0 auto; border-radius: 10px; background: var(--surface2); display: grid; place-items: center; text-align: center; font-size: 12px; color: var(--muted); padding: 10px; }
+
+/* tiffin progress */
+.tiffin { display: flex; gap: 18px; align-items: flex-end; }
+.carrier { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 84px; flex: none; }
+.handle { width: 46px; height: 20px; border: 4px solid color-mix(in srgb, var(--muted) 55%, transparent); border-bottom: 0; border-radius: 12px 12px 0 0; }
+.tier { width: 72px; height: 34px; border-radius: 9px; background: linear-gradient(90deg, var(--surface2), var(--line), var(--surface2)); position: relative; }
+.tier::before { content: ""; position: absolute; left: 0; right: 0; top: 4px; height: 2px; background: var(--line); }
+.tier.full::after { content: ""; position: absolute; inset: 4px; border-radius: 6px; background: var(--tur); box-shadow: inset 0 0 0 1px var(--tur-line); }
+.tier.closed::after { background: var(--chili); }
+.tier.now { outline: 2px dashed var(--tur); outline-offset: -1px; }
+.base { width: 84px; height: 10px; border-radius: 6px; background: color-mix(in srgb, var(--muted) 35%, transparent); }
+.steps { flex: 1; display: flex; flex-direction: column; padding-bottom: 13px; }
+.steps div { height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); }
+.steps div.done { color: var(--ink); font-weight: 700; }
+.steps div.now { color: var(--tur-ink); font-weight: 700; }
+
+/* sheets */
+.sheet-back { position: absolute; inset: 0; background: rgba(0,0,0,.35); z-index: 5; display: flex; align-items: flex-end; }
+.sheet-back.anim { animation: fade .18s ease-out; }
+.sheet { width: 100%; height: calc(100% - 54px); background: var(--page); border-radius: 14px 14px 0 0; display: flex; flex-direction: column; overflow: hidden; }
+.anim .sheet { animation: up .24s ease-out; }
+.grab { width: 38px; height: 5px; border-radius: 3px; background: var(--line); margin: 6px auto 0; flex: none; }
+@keyframes up { from { transform: translateY(40px); opacity: .6; } }
+@keyframes fade { from { opacity: 0; } }
+.sms { position: absolute; left: 10px; right: 10px; top: 52px; z-index: 9; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: 18px; padding: 10px 14px; box-shadow: 0 8px 24px rgba(0,0,0,.18); animation: drop .3s ease-out; }
+@keyframes drop { from { transform: translateY(-20px); opacity: 0; } }
+
+/* chef side */
+.chef { background: var(--wa); border: 1px solid var(--line); border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.chef-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.chef-head h2 { font: 700 21px/1.2 var(--f-display); margin: 0; flex: 1; min-width: 200px; }
+.chef .msg { background: var(--wa-bubble); border-radius: 4px 16px 16px 16px; padding: 12px 14px; white-space: pre-wrap; word-wrap: break-word; box-shadow: 0 1px 1px rgba(0,0,0,.06); }
+.chef .msg .hd { font-weight: 700; margin-bottom: 4px; }
+.chef .btns { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1px; margin-top: 10px; border-top: 1px solid var(--line); background: var(--line); border-radius: 0 0 12px 12px; overflow: hidden; }
+.chef .btns button { border: 0; background: var(--wa-bubble); color: var(--leaf); font-weight: 700; padding: 10px; }
+.chef .inline { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.chef .inline input { flex: 1; min-width: 120px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.chef .inline button { border: 0; border-radius: 10px; background: var(--leaf); color: var(--leaf-ink); font-weight: 700; padding: 9px 14px; }
+.chef .when { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.empty { color: var(--muted); padding: 10px 2px; }
+.ghost { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 12px; font-weight: 600; }
+.log { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow: auto; }
+.sheetrow { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.sheetrow table { border-collapse: collapse; font-size: 12.5px; min-width: 720px; width: 100%; }
+.sheetrow th, .sheetrow td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+.sheetrow th { background: var(--surface2); font-weight: 700; }
+details.howto summary { cursor: pointer; font-weight: 700; }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <div class="intro">
+    <div>
+      <div class="row" style="gap:14px;align-items:center"><span class="logo" style="--s:22px"><span class="fr">FRANKLIN</span><span class="tr">TIFFIN ROOM</span></span><h1>App Simulator</h1></div>
+      <p>A browser replica of the iPhone app with your menu and ordering rules. Order as a customer on the left, then answer as Chef on the right, exactly as you would on WhatsApp. Nothing here reaches your real bot, Sheet or customers.</p>
+    </div>
+    <button class="ghost" data-a="reset">Reset simulator</button>
+  </div>
+  <div class="stage">
+    <div class="phone"><div class="screen" id="screen"></div></div>
+    <section class="chef" id="chef" aria-label="Chef's WhatsApp"></section>
+  </div>
+</div>
+
+<script>
+(function () {
+"use strict";
+
+// ------------------------------------------------------------------ menu (your sample menu from /admin)
+const MENU = {"settings":{"businessName":"Franklin Tiffin Room","shortName":"FTR","tagline":"your home-style cooking chef","phoneDisplay":"1-234-FTR-DOSE (387-3673)","minOrderSubtotal":150,"maxOrderQtyPerItem":4,"cateringPickupOnly":true,"halfTrays":false,"halfTrayPercent":65,"payment":{"enabled":true,"zelleTo":"FranklinTiffinRoom","zelleName":"","depositPercent":50,"cateringHoursBefore":48,"ldsDaysBefore":3,"ldsTime":"10:00"},"delivery":{"ldsMaxMiles":40,"maxMiles":25}},
+"categories":[{"id":"south-indian-catering","title":"South Indian Catering","subtitle":"South Indian - authentic Hoysala Karnataka style vegetarian delicacies catering menu","items":[
+{"id":"bisi-bele-bhath","title":"Bisi Bele Bhath","description":"Bisi bele bath is a famous, spicy rice dish from Karnataka (originated in Mysore Palace kitchen), India, made by cooking rice, toor dal (pigeon pea lentils), mixed vegetables, and tamarind together with a special aromatic spice blend.","price":170,"size":"Large","servesMin":40,"servesMax":45},
+{"id":"mosaranna","title":"Mosaranna","description":"Mosaranna is a traditional South Indian comfort food made of soft-cooked mashed rice mixed with fresh yogurt and a fragrant oil tempering.","price":120,"size":"Large","servesMin":50,"servesMax":55},
+{"id":"vangi-bhath","title":"Vangi Bhath","description":"Vangi Bath (or Vangi Bhath) is a popular South Indian spiced rice dish. The name translates to \"brinjal\" (eggplant) and \"rice\". It features cooked rice tossed with tender sauteed eggplants and a special, aromatic blend of roasted lentils, coconut, and spices.","price":150,"size":"Large","servesMin":40,"servesMax":45},
+{"id":"saaru","title":"Saaru","description":"Saaru is a traditional, watery South Indian soup-like dish also known as rasam, characterized by a sharp balance of spicy, sour, and tangy flavors. It is made with a liquid base of tamarind, tomatoes, and a spice blend called saaru pudi.","price":100,"size":"10 quarts","servesMin":50,"servesMax":60},
+{"id":"majjige-huli","title":"Majjige HuLi","description":"Majjige huli is a traditional Karnataka-style, yogurt-based South Indian vegetarian curry made with buttermilk, coconut, and tender vegetables.","price":125,"size":"10 quarts","servesMin":50,"servesMax":60},
+{"id":"maddur-vade","title":"Maddur Vade","description":"Maddur vade is a savory, crunchy deep-fried fritter made with rice flour, semolina (rava), and all-purpose flour (maida). It originates from the town of Maddur in Karnataka, India, and features a textured, cracked outer crust with a soft center.","price":100,"size":"50 pcs","servesMin":50,"servesMax":1},
+{"id":"palya","title":"Palya","description":"Palya is a classic South Indian dry vegetable stir-fry, typically featuring chopped vegetables, a spiced oil tempering, and fresh coconut. PRICE DEPENDS ON SEASONALLY AVAILABLE VEGETABLES AND CHOICE OF VEGETABLES","price":120,"size":"Large","servesMin":50,"servesMax":60,"requiresNote":true,"notePrompt":"Which vegetable would you like for the Palya? (e.g. beans, cabbage, carrot)"},
+{"id":"kosambari","title":"Kosambari","description":"Kosambari is a traditional South Indian raw salad made from soaked split pulses, fresh vegetables, and a light tempering.","price":80,"size":"Large","servesMin":60,"servesMax":70},
+{"id":"huggi-w-hunse-gojju","title":"Huggi w/huNse gojju","description":"Huggi is a traditional comfort food from Karnataka. Khara Huggi (a savory rice and lentil dish similar to pongal or khichdi)","price":150,"size":"Large","servesMin":40,"servesMax":50},
+{"id":"bajji-pakoda","title":"Bajji / pakoda","description":"125 - 150 pieces of mix - bell pepper, herekai, alugadde, zucchini, onion.","price":100,"size":"Large","servesMin":1,"servesMax":1},
+{"id":"huli","title":"Huli","description":"Huli is a traditional, comforting lentil and vegetable stew from Karnataka characterized by its tangy, spiced flavor profile. It relies on a blend of cooked lentils, fresh vegetables, tamarind for sourness, and a ground coconut spice paste.","price":130,"size":"10 Quarts","servesMin":50,"servesMax":55},
+{"id":"payasa","title":"Payasa","description":"Payasa (or Payasam) is a traditional and creamy South Indian sweet pudding or kheer from Karnataka, made with a base of milk or coconut milk, sweetened with sugar or jaggery, and flavored with cardamom, cashews, and grapes.","price":100,"size":"Medium","servesMin":50,"servesMax":55},
+{"id":"sweet-huggi","title":"Sweet Huggi","description":"Sweet huggi (also known as sihi huggi or hugge) is a traditional South Indian comfort dessert from Karnataka made with rice or broken wheat, moong dal, jaggery, and ghee.","price":100,"size":"Half","servesMin":40,"servesMax":50},
+{"id":"jamoon","title":"Jamoon","description":"DRY or WET - Gulab jamoon (or gulab jamun) is a famous sweet ball made from milk and soaked in sugar syrup. It is soft, very sweet, and has a rich smell of cardamom and rose water.","price":100,"size":"50 pcs","servesMin":50,"servesMax":50},
+{"id":"ambode","title":"Ambode","description":"Ambode is a traditional Karnataka-style crispy lentil fritter made primarily with coarse chana dal, fresh dill leaves, and aromatic spices.","price":100,"size":"100 pcs","servesMin":50,"servesMax":100}]}],
+"lds":{"title":"LIVE Dose Station","subtitle":"Made-to-order Mysore Masale Dose and Onion Dose, cooked live at your event","setupFee":250,"pricePerHundred":1000,"minTotal":100,"maxTotal":200,"increment":50,"mdTitle":"Mysore Masale Dose","mdDescription":"Crispy Mysore Masale Dose (MD) cooked live, served with red garlic chutney, potato masale, and green chutney.","odTitle":"Onion Dose","odDescription":"Crispy Onion Dose (OD) cooked live from the same station.","setupMinutes":30,"closeoutMinutes":30,"delayFeePerHour":200,"servingMinutesByTotal":{"100":75,"150":90,"200":120},"travelFreeMiles":20,"travelFeePerBlock":50,"travelBlockMiles":10}};
+const ST = MENU.settings, LDS = MENU.lds, CAT = MENU.categories[0];
+const TZ = "America/New_York";
+const CODE = "246810";
+const ZELLE_QR = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAG2AQAAAAAxAvLKAAAIDElEQVR42u2cT4tsRxnGf9WnSXU03NPoIibEVBOUbM1CiUjmtNmIS8GFuwi6lugioHT6VE8Piqu48APoJ9CliyS3Ogno0hBwIYRU514I2WidQKAmnD6Pi9Nz78y9cycTDOGey9SqqX6mqK633n/P+9YYccmxGXHpcQW9gg4XOoHfZIAuNv6vrb8A+iKQ+o/XPJ/ML4Dax55Bjz3z7//85Sbv6wcXbWD6zm9Nevt3h5jH1epPF0F/MjuG0TEddDf1vYv2+kjCeOwfFWifNNuL9nqEJUbyI4JrfHDRqo/NCr/6scF8hQ9f+tFPz+7VnGdd0vTS1iVdXrCzq6t9Bf0CocVppdDjH333rT9w4+nxD/NTxrQ3T1/x7ZlVuxvX0we+NX97Nr360Eu/ePHCDSzavQLFhz98+NVwEXS0bPupb2ka/EWrfn01BsE/Zt/4yNNdtOqNb5uCkefZOB6n+fjCvf59c4gB4EuzXF8I9d78am9pf/n75/2nmwwAPhmfXWYzvqdwHrq6r1fQK+j9Bz02xpgJxrw8PQS2Y1YTJluPTDVmNV2Z+R7ygJ4A2UmdDdmt1dlQyIOVokm1giLlKlV7yMBOwJg5fHnTsv7wBSiiaYyp5Mz0YMyi2U3ZQx5cwcKBlbSWpNattZKyU6IMRaRUqnrIoAR74mOPn37XgHuX3fS/BjCl9/PCtV994G3WXmOVqRNWkiJWGSNfBsU6La0GqbFbY0ZscGOWbHazIw7Y4Gg6OK7GwKaHPLCCVT9wa3VWhdYRq+xMWpYhu7ZU2kPCsH5WpAxWmUIrBYADAEqlA5zUUUmKRmG4gj2b7ZtT1EkvWJOMQtFLr3XrWEmKtTyVYpHqhI0DFKykAIXWqZZa6mhyhTPJqCtioc5Kkrwd3H3FSIV82VlJLdhgZRJlkFqWNii25WrI9/XTT4D+p5tESxFNxsZF/92i3GssQ/MwTtrkDdtxuXtUOA82ZAp5GLt1Mgkz282qzAMs2LIDWJTeCteWq1zZSKlEdi1GAkoN7mrX6c0MHAEbxaPmtTJkFo2HCZS7ycZGmgc8iws2FBGMQm+6gkSphCIsqTLDs1k2jjCZXeXLesLOeNZNzZbGOMGiHIFV8XY9ZMHOPkVjFwBFpPRWrfMc2GAF+yzO25CBgQVPZCdJQXFBrdC6FqOQnUlQZbdORsoMMIc5t0CUbi0hAN9DG99Upj6ubJJ5odiMy52ZT5oFJmmybUs/2ZRxNTSCAkXKTaaIRZ/KKGKDjUYdB1BICRuLQQb74bQUp0B7B6o7udoJq+x8KQWc5G3oKwlBvRrjoBpcFmekXBXy1FLrfKkMjrIrQxHrZBI4huZhkKSOKrMopdD21IqikS+7fb6WXTvAiOjyFPjMmCIzcWM0oYiwzpgZ0Iw+nu3MqJlPtkVaTQaYw4Birc4G3Fod4Nqe91zL9261enBYh/NOoFLIroU+YuisMgtqdftAURocATzCKWkCW196NjjfjNhAkWjmuJZlMz+ewZvDzOLGdwr2JKIIp5lSj8kUGjcdjm3LARXsZnJhZzybKTbCc5PB5TAJyPTOhFoecFCnav/dIDU2nSlc3KOTaNrHhMYpV0U8YokrNN6+bgPNojTu+oSjsrPBivL5wSWnbe9qfdlB61oObJDASJmeJ4wDNsWe88tUk1PQMVWujCnSoVURi8jxfLKt5Zt5EXdmlTamOp5pcBrb+xTnyw53ko46WJZd0Us7O8qBEcAjG7X9fsZGWOvPrWubVVNPkDzsZjRFAlrMUHnC2/c194Yom9uT0xOoJpvxtth2zQvj7Vr1FJoRHM+1KbR7NPSh4tBiwkUpCWopubaPAvsmB6S2XEnQDi8i+gwaC2BDEYu0xLW9O73F7NepTpWkoZliMlBJ9Dl3oXU0Clb7XodCq1TZ2IIdeLB/XqeyP2WKAyzAqtC6ry3WUqKQZ0kFDK9otTXpzWaOs+qOZ8D2et6Y6mVTO7XblkO7shE0cAK4u2dM2JdsrKBORmrhpEjjy7Cv01lJQxLsfF8Sr3KFW/fOdEGlAPWeJ0zLvgA5bN6lvUdTwP5qU16fkLfHTomJG5fPU9kIJpGdL1cKbOHwfktOJ9xpiPxZQs2ob0rqmf21VpIVpafKUK5SZdUOLiY89TkAdMx7+foTTljtrajYKFDtw2HJl9K+SNO3RfRqfX9EGecmp3d5mPktHxukdaoThdbxgKovTx0UsU7LXr6dHSYB7NYJu7dAAKXf9zrYAMVQDdGpPLS7AxJOpvY9ZX0AHBQLeat9v9me2ZcG1xSwD3VV9P1VuLbsbMjOpCVkilQrZDdc1iHeE3Ii2FHfXLf5eL5zZooizZwK5AoFnC+N8TZq9sYwG5vpy8SwOHmosw91TQIKDdjDCN1JJ/lTU3voJvNr15lREY/6RiaZ2ilva/kpNg6YoKAZ4XBtqUypFtgcV75ZJXBsXx9cB7DvvWh7u3Yc2lsmKu0jqvntxxi3/raWMtlBnYAFtcL909qdLvtCdkRjzIhKWieTnOS3IxsmzYLDMmRnNQLYTc2AG+8mt9PzQ8CMz2Rx5uq/GlxBvyCo5p9l1Zv/vBy0O1OCvBB6863P+TVzr0YPMf1X++RdyO15qz4Hr13wwuLUuPa1n70yqe+aPse+6trP0XfCpQ5rdvkTmB8F3rgUtO3zsMtAj6k91aX2mkbX4T3PPV9a3R7vffOT5VPvcxkoO155x+syImirG/nGjbslE8bn7P4Jnvg/b9aVKb6CXkE/A/R/p0I14X+vulMAAAAASUVORK5CYII=";
+
+// Sample addresses the simulator's map lookup knows (miles from the Somerset kitchen).
+const PLACES = [
+  { key: "princeton", label: "25 Oak Ave, Princeton, NJ 08540", miles: 13.6 },
+  { key: "edison", label: "100 Main St, Edison, NJ 08817", miles: 6.2 },
+  { key: "hoboken", label: "300 Washington St, Hoboken, NJ 07030", miles: 31.4 },
+  { key: "philadelphia", label: "1 Market St, Philadelphia, PA 19106", miles: 51.1 }
+];
+
+// ------------------------------------------------------------------ dates & time helpers
+function todayISO() { return new Date().toLocaleDateString("en-CA", { timeZone: TZ }); }
+function addDays(iso, n) { const [y, m, d] = iso.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); }
+function dow(iso) { const [y, m, d] = iso.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); }
+function dateLabel(iso) { const [y, m, d] = iso.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }); }
+function t12(t) { const [h, m] = t.split(":").map(Number); return (h % 12 || 12) + ":" + String(m).padStart(2, "0") + (h >= 12 ? " PM" : " AM"); }
+function tShort(t) { return t12(t).replace(":00 ", " "); }
+function mins(t) { const [h, m] = t.split(":").map(Number); return h * 60 + m; }
+function hhmm(n) { return String(Math.floor(n / 60) % 24).padStart(2, "0") + ":" + String(n % 60).padStart(2, "0"); }
+
+// Chef's open dates: the next two weekends. What each date offers comes from the
+// calendar switches in the Chef panel (Lunch, Dinner, Delivery, LIVE Dose) - like /admin.
+const LDS_WINDOWS = [{ start: "11:00", end: "16:00" }, { start: "11:00", end: "16:00" }, { start: "17:00", end: "21:00" }, { start: "11:00", end: "16:00" }];
+const DEFAULT_DAYS = [{ am: true, pm: true, delivery: true, lds: true }, { am: false, pm: true, delivery: true, lds: false }, { am: true, pm: false, delivery: false, lds: true }, { am: true, pm: true, delivery: true, lds: false }];
+const DEFAULT_SETTINGS = { pickupOnly: true, halfTrays: false, deposit: true };
+function baseDates() {
+  let sat = todayISO();
+  while (dow(sat) !== 6) sat = addDays(sat, 1);
+  return [sat, addDays(sat, 1), addDays(sat, 7), addDays(sat, 8)];
+}
+function chefDates() {
+  return baseDates().map((date, i) => {
+    const t = S.days[i];
+    return { date, pickupAM: t.am, pickupPM: t.pm, catering: t.delivery && !S.settings.pickupOnly ? [{ start: "12:00", end: "18:00" }] : [], liveDose: t.lds ? [LDS_WINDOWS[i]] : [] };
+  }).filter((d) => d.pickupAM || d.pickupPM || d.catering.length || d.liveDose.length);
+}
+function summary(d) {
+  const parts = [], p = [];
+  if (d.pickupAM) p.push("11:30 AM");
+  if (d.pickupPM) p.push("6 PM");
+  if (p.length) parts.push("Catering pickup " + p.join(" or "));
+  if (d.catering.length) parts.push("Catering delivery " + d.catering.map((w) => tShort(w.start) + "-" + tShort(w.end)).join(", "));
+  if (d.liveDose.length) parts.push("LIVE Dose " + d.liveDose.map((w) => tShort(w.start) + "-" + tShort(w.end)).join(", "));
+  return parts.join(" · ");
+}
+function ldsMinutes(total) { return LDS.setupMinutes + (LDS.servingMinutesByTotal[total] || Math.round(total * 0.6)) + LDS.closeoutMinutes; }
+function slotsFor(d, kind, plates, ful) {
+  if (kind === "lds") {
+    const len = ldsMinutes(plates), out = [];
+    d.liveDose.forEach((w) => { for (let s = mins(w.start); s + len <= mins(w.end); s += len) out.push({ id: "slot:" + hhmm(s) + "-" + hhmm(s + len), title: t12(hhmm(s)) + " - " + t12(hhmm(s + len)) }); });
+    return out;
+  }
+  const out = [];
+  if (ful === "delivery") {
+    d.catering.forEach((w) => { for (let s = mins(w.start); s + 180 <= mins(w.end); s += 180) out.push({ id: "slot:" + hhmm(s) + "-" + hhmm(s + 180), title: t12(hhmm(s)) + " - " + t12(hhmm(s + 180)) }); });
+    return out;
+  }
+  if (d.pickupAM) out.push({ id: "slot:pickup-am", title: "Pickup by 11:30 AM", sub: "Lunch order" });
+  if (d.pickupPM) out.push({ id: "slot:pickup-pm", title: "Pickup by 6:00 PM", sub: "Dinner order" });
+  return out;
+}
+function ldsSchedule(start, total) {
+  const s = mins(start), first = s + LDS.setupMinutes, last = first + (LDS.servingMinutesByTotal[total] || Math.round(total * 0.6)), wrap = last + LDS.closeoutMinutes;
+  return { arrival: t12(start), firstDose: t12(hhmm(first)), lastDose: t12(hhmm(last)), wrapUp: t12(hhmm(wrap)) };
+}
+function travelFee(miles) { if (miles == null) return null; if (miles <= LDS.travelFreeMiles) return 0; return Math.ceil((miles - LDS.travelFreeMiles) / LDS.travelBlockMiles) * LDS.travelFeePerBlock; }
+function ldsPrice(total) { return (total * LDS.pricePerHundred) / 100 + LDS.setupFee; }
+
+// Zelle deposit deadline (same rule as payments.js): catering 48h before the day; LIVE Dose 10 AM three days before.
+function deadlineFor(order) {
+  const [y, m, d] = order.eventDate.split("-").map(Number);
+  let t;
+  if (order.type === "lds") t = new Date(Date.UTC(y, m - 1, d - 3, 15, 0)); // 10:00 ET (EST)
+  else t = new Date(Date.UTC(y, m - 1, d - 2, 5, 0) - 60000); // 11:59 PM ET the night before
+  const min = Date.now() + 2 * 3600000;
+  return new Date(Math.max(t.getTime(), min));
+}
+function deadlineLabel(dt) { return new Date(dt).toLocaleString("en-US", { timeZone: TZ, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); }
+
+// ------------------------------------------------------------------ formatting
+const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function money(n, cents) { const show = cents == null ? Math.round(n) !== n : cents; return "$" + Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: show ? 2 : 0, maximumFractionDigits: show ? 2 : 0 }); }
+function phoneFmt(d) { d = String(d).replace(/\D/g, "").slice(0, 10); if (!d) return ""; if (d.length <= 3) return "(" + d; if (d.length <= 6) return "(" + d.slice(0, 3) + ") " + d.slice(3); return "(" + d.slice(0, 3) + ") " + d.slice(3, 6) + "-" + d.slice(6); }
+function orderId(prefix) { return prefix + "-" + Date.now().toString(36).toUpperCase(); }
+function stamp() { return new Date().toLocaleString("en-US", { timeZone: TZ, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); }
+
+// ------------------------------------------------------------------ state
+const KEY = "ftr-sim-v1";
+function fresh() {
+  return {
+    user: null, // { phone, first, last }
+    cart: { lines: [], lds: null },
+    orders: [], inbox: [], chefLog: [], sheet: [],
+    settings: { ...DEFAULT_SETTINGS }, days: DEFAULT_DAYS.map((d) => ({ ...d })), savedAt: null,
+    ui: { tab: "menu", stack: { menu: [], orders: [], messages: [], account: [] }, sheet: null, sms: null }
+  };
+}
+let S;
+try { S = JSON.parse(localStorage.getItem(KEY)) || fresh(); } catch (e) { S = fresh(); }
+if (!S.ui || !S.ui.stack) S = fresh();
+S.ui.sheet = null; S.ui.sms = null; S.ui.selecting = false; S.ui.picked = [];
+if (!S.settings) S.settings = { ...DEFAULT_SETTINGS };
+if (!S.days) S.days = DEFAULT_DAYS.map((d) => ({ ...d }));
+const draft = {};
+let animNext = false; // typed text that shouldn't trigger re-renders
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* private window */ } }
+
+// Half trays (admin switch): whole trays at full price, a half tray at 65% of a full one.
+const HALF = () => S.settings.halfTrays;
+const STEP = () => (HALF() ? 0.5 : 1);
+const trayTotal = (price, qty) => Math.floor(qty) * price + (qty % 1 ? Math.round(price * 0.65 * 100) / 100 : 0);
+const minOrder = () => (HALF() ? 100 : ST.minOrderSubtotal);
+const qtyText = (q) => (q % 1 ? (Math.floor(q) || "") + "½" : String(q));
+const cartTotal = () => S.cart.lds ? S.cart.lds.price : S.cart.lines.reduce((s, l) => s + trayTotal(l.price, l.qty), 0);
+const cartCount = () => S.cart.lds ? 1 : S.cart.lines.length;
+const dishById = (id) => CAT.items.find((i) => i.id === id);
+const needsYou = (o) => o.stage === "deposit_due" || o.stage === "quote_ready";
+const unread = () => S.inbox.filter((m) => !m.read).length;
+
+// What the bot would text the customer -> lands in the app's Messages tab.
+// Every message is labelled, the same rules as the server (appInbox.js).
+const TAGS = [
+  ["paid", "Payment confirmed", /^Payment received - thank you/i],
+  ["not_received", "Payment not received", /hasn't received/i],
+  ["released", "Released", /released/i],
+  ["deposit_due", "Deposit due", /please send a \d+% deposit by Zelle/i],
+  ["screenshot", "Screenshot received", /received your payment screenshot/i],
+  ["declined", "Declined", /not able to take|isn't able to take|declined\b/i],
+  ["approved", "Approved", /Chef approved your order|is confirmed!|^Confirmed! Your custom order|accepted the quote/i],
+  ["received", "Received", /is being reviewed|has gone to the chef|passed your question along/i]
+];
+function classify(text, header) {
+  if (/quote is ready/i.test(header || "")) return { tag: "quote", tagLabel: "Quote ready" };
+  for (const [tag, tagLabel, re] of TAGS) if (re.test(text)) return { tag, tagLabel };
+  return { tag: "update", tagLabel: "Update" };
+}
+function tell(text, extra) { S.inbox.unshift({ id: Math.random().toString(36).slice(2), at: stamp(), text, read: false, ...(extra || {}), ...classify(text, extra && extra.header) }); }
+function chefLog(text) { S.chefLog.unshift(stamp() + " · " + text); }
+function sheetRow(o) {
+  const items = o.type === "custom" ? "CUSTOM REQUEST: " + o.request : o.lines.map((l) => l.kind === "lds" ? `LIVE Dose Station: ${l.detail}${l.travelFee ? ` (+$${l.travelFee.toFixed(2)} travel)` : ""}${l.note ? ` (note: ${l.note})` : ""}` : `${l.qtyLabel || l.qty}x ${l.title}${l.qty % 1 ? " (half tray)" : ""}${l.note ? ` (note: ${l.note})` : ""}`).join("; ");
+  const row = S.sheet.find((r) => r.id === o.id);
+  const data = { id: o.id, ts: o.createdAt, name: S.user ? S.user.first + " " + S.user.last : "", phone: S.user ? "1" + S.user.phone : "", items, subtotal: o.subtotal.toFixed(2), fulfillment: o.fulfillment || "custom", address: o.address || "", time: o.requestedTime || "", status: o.status, payment: payText(o) };
+  if (row) Object.assign(row, data); else S.sheet.unshift(data);
+}
+function payText(o) {
+  const p = o.payment; if (!p) return "";
+  if (p.state === "paid") return `Deposit ${money(p.depositDue, true)} PAID; balance ${money(p.balance, true)}`;
+  if (p.state === "review") return `Deposit ${money(p.depositDue, true)} - screenshot received, chef to confirm`;
+  return `Deposit ${money(p.depositDue, true)} due by ${deadlineLabel(p.deadline)}`;
+}
+function setStatus(o, status, stage) { o.status = status; o.stage = stage; sheetRow(o); }
+
+// ------------------------------------------------------------------ navigation
+function cur() { const st = S.ui.stack[S.ui.tab]; return st[st.length - 1] || null; }
+function push(screen, params) { S.ui.stack[S.ui.tab].push({ screen, ...(params || {}) }); render(true); }
+function pop() { S.ui.stack[S.ui.tab].pop(); render(true); }
+function openSheet(type, params) { animNext = true; S.ui.sheet = { type, view: params && params.view || null, ...(params || {}) }; render(true); }
+function closeSheet() { S.ui.sheet = null; render(true); }
+
+// ------------------------------------------------------------------ icons
+const ICON = {
+  menu: '<svg viewBox="0 0 24 24"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 2-2.5 5-2 9h3V3zM17 12v9"/></svg>',
+  orders: '<svg viewBox="0 0 24 24"><path d="M5 8h14l-1 13H6zM9 8V6a3 3 0 0 1 6 0v2"/></svg>',
+  messages: '<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0"/></svg>',
+  account: '<svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>'
+};
+
+// ------------------------------------------------------------------ screens
+function navBar(title, left, right) {
+  return `<div class="nav"><div class="side">${left || ""}</div><div class="title">${title || ""}</div><div class="side r">${right || ""}</div></div>`;
+}
+const LOGO = (s) => `<span class="logo" style="--s:${s}px" role="img" aria-label="Franklin Tiffin Room"><span class="fr">FRANKLIN</span><span class="tr">TIFFIN ROOM</span></span>`;
+const back = (label) => `<button class="link" data-a="pop">‹ ${esc(label || "Back")}</button>`;
+
+function menuScreen() {
+  const dates = chefDates();
+  const rows = CAT.items.map((d) => {
+    const n = S.cart.lines.filter((l) => l.id === d.id).reduce((s, l) => s + l.qty, 0);
+    const meta = [d.size, d.servesMin > 1 ? `Serves ${d.servesMin}${d.servesMax > d.servesMin ? "–" + d.servesMax : ""}` : ""].filter(Boolean).join(" · ");
+    const sel = S.ui.selecting, on = sel && S.ui.picked.includes(d.id);
+    return `<button class="dish" data-a="${sel ? "pick" : "dish"}" data-x="${d.id}" ${sel ? `aria-pressed="${on}"` : ""}>${sel ? `<span class="radio" style="align-self:center;${on ? "border-color:var(--leaf);background:radial-gradient(circle,var(--leaf) 0 45%,transparent 50%)" : ""}"></span>` : ""}<div style="min-width:0"><div class="t">${esc(d.title)}</div>${meta ? `<div class="small muted">${esc(meta)}</div>` : ""}<div class="d">${esc(d.description)}</div></div><div class="p num">${money(d.price)}${n ? `<div><span class="chip">${n} in order</span></div>` : ""}</div></button>`;
+  }).join("");
+  return navBar("", `<button class="link" data-a="selectmode">${S.ui.selecting ? "Cancel" : "Select dishes"}</button>`, "") +
+  `<div class="body"><div class="stack" style="gap:0;padding-bottom:24px">
+    <div class="pad stack" style="padding-top:6px;padding-bottom:20px;gap:8px;align-items:center;text-align:center">${LOGO(34)}<div class="tagline">Bringing back the OG flavor of Masala Dose</div><div class="stack" style="gap:6px;align-items:center"><span style="font:italic 600 16px var(--f-display)">Multi Cuisine Personal Chef in Somerset, NJ</span><span class="veg"><i></i>100% Vegetarian</span></div></div>
+    <div class="lds" style="margin-bottom:26px">
+      <span class="flag">★ Our flagship</span>
+      <div style="font:700 25px/1.15 var(--f-display)">Live on-site Masala Dose</div>
+      <div>${LDS.mdTitle} and ${LDS.odTitle}, made fresh on the griddle at your event. 100, 150 or 200 dose.</div>
+      <div><b class="num" style="font-size:18px">From ${money(ldsPrice(LDS.minTotal))}</b> <span class="small">incl. ${money(LDS.setupFee)} setup</span></div>
+      <button class="btn" data-a="lds" ${dates.some((d) => d.liveDose.length) ? "" : "disabled"}>${S.cart.lds ? "Change your station" : "Plan your station"}</button>
+      ${dates.some((d) => d.liveDose.length) ? "" : `<div class="small">No LIVE Dose dates open right now.</div>`}
+    </div>
+    <div class="pad small muted" style="font-weight:600;margin-bottom:8px">Chef's open dates</div>
+    <div class="dates">${dates.map((d) => `<div class="dcard"><b>${dateLabel(d.date)}</b><span class="small muted">${summary(d)}</span></div>`).join("")}</div>
+    <div class="pad" style="margin-top:26px"><h3 class="h-sec">${esc(CAT.title)}</h3><div class="muted small" style="margin:4px 0 6px">${esc(CAT.subtitle)}</div><div class="small muted">${S.settings.pickupOnly ? "Trays for pickup from our kitchen" : "Pickup or delivery"} · ${HALF() ? "full or half trays" : "full trays"}</div><div hidden>Trays for pickup from our kitchen · full trays</div></div>
+    <div>${rows}</div>
+    <div class="pad" style="margin-top:28px"><div class="panel"><div class="h-card">Something else in mind?</div><div class="muted">North Indian, Asian fusion, Italian or Mexican vegetarian - tell Chef what you need and get a price.</div><button class="btn soft" data-a="compose" data-x="custom">Ask for a custom quote</button></div></div>
+  </div></div>` +
+  (S.ui.selecting ? `<div class="cartbar"><button class="btn" data-a="multi" ${S.ui.picked.length ? "" : "disabled"} style="display:flex;justify-content:space-between;align-items:center"><span>${S.ui.picked.length ? S.ui.picked.length + " selected" : "Tap dishes to select them"}</span>${S.ui.picked.length ? "<span>Choose quantities</span>" : ""}</button></div>` : "") +
+  (!S.ui.selecting && cartCount() ? `<div class="cartbar"><button class="btn" data-a="cart"><span>${S.cart.lds ? "LIVE Dose Station" : cartCount() + " dish" + (cartCount() === 1 ? "" : "es")}</span><span class="num">View order · ${money(cartTotal())}</span></button></div>` : "");
+}
+
+function gate(reason) {
+  return `<div class="body"><div class="stack pad" style="align-items:center;text-align:center;padding-top:120px;gap:18px">${LOGO(30)}<div style="font-size:17px;max-width:30ch">${reason}</div><button class="btn" data-a="signin">Sign in with your phone number</button></div></div>`;
+}
+
+function ordersScreen() {
+  const top = cur();
+  if (top && top.screen === "order") return orderDetail(top.id);
+  if (!S.user) return navBar("Orders") + gate("Sign in to see your orders, deposits and Chef's replies.");
+  if (!S.orders.length) return navBar("Orders") + `<div class="body"><div class="stack pad" style="text-align:center;padding-top:100px"><div class="h-sec">No orders yet</div><div class="muted">When you send an order, you'll follow it here - from Chef's approval to your deposit and pickup.</div><button class="btn soft" data-a="tab" data-x="menu">Browse the menu</button></div></div>`;
+  const card = (o) => {
+    const [y, m, d] = dayKey(o).split("-").map(Number), dt = new Date(Date.UTC(y, m - 1, d));
+    const f = (opt) => dt.toLocaleDateString("en-US", { ...opt, timeZone: "UTC" });
+    return `<button class="ocard ${needsYou(o) ? "act" : ""}" data-a="order" data-x="${o.id}"><div class="row" style="align-items:flex-start;gap:14px"><span class="tile" aria-hidden="true"><b>${f({ month: "short" })}</b><span>${d}</span><i>${f({ weekday: "short" })}</i></span><div class="stack" style="gap:6px;flex:1;min-width:0"><div class="spread"><b class="h-card" style="font-size:17px">${esc(o.title)}</b>${pill(o)}</div><div class="small muted">${esc(o.requestedTime || o.request || "")}</div><div class="spread small muted"><span>${o.id}</span>${o.subtotal ? `<b class="num" style="color:var(--ink);font-size:15px">${money(o.subtotal, true)}</b>` : ""}</div></div></div></button>`;
+  };
+  // By date: what needs the customer, booked events ahead (soonest first), past orders by month (newest first).
+  const today = todayISO();
+  const act = S.orders.filter(needsYou).sort((a, b) => dayKey(a).localeCompare(dayKey(b)));
+  const rest = S.orders.filter((o) => !needsYou(o));
+  const upcoming = rest.filter((o) => o.stage !== "closed" && (o.eventDate ? o.eventDate >= today : o.stage !== "confirmed")).sort((a, b) => dayKey(a).localeCompare(dayKey(b)));
+  const past = rest.filter((o) => !upcoming.includes(o)).sort((a, b) => dayKey(b).localeCompare(dayKey(a)));
+  const months = [];
+  past.forEach((o) => {
+    const [y, m] = dayKey(o).split("-").map(Number);
+    const label = new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+    const last = months[months.length - 1];
+    if (last && last.label === label) last.orders.push(o); else months.push({ label, orders: [o] });
+  });
+  const head = (t, c) => `<div class="h-sec" style="font-size:22px;margin-top:8px;color:${c}">${t}</div>`;
+  return navBar("Orders") + `<div class="body"><div class="stack" style="padding:4px 16px 24px">
+    ${act.length ? head("Needs you", "var(--tur-ink)") + act.map(card).join("") : ""}
+    ${upcoming.length ? head("Upcoming", "var(--red)") + upcoming.map(card).join("") : ""}
+    ${months.length ? head("Past orders", "var(--red)") + months.map((g) => `<b class="small muted" style="margin-top:4px">${g.label}</b>` + g.orders.map(card).join("")).join("") : ""}
+  </div></div>`;
+}
+const dayKey = (o) => o.eventDate || o.createdDay || todayISO();
+
+function pill(o) {
+  const map = { review: ["With Chef", ""], quote_requested: ["Awaiting quote", ""], quote_ready: ["Quote ready", "act"], deposit_due: ["Deposit due", "act"], deposit_review: ["Checking deposit", ""], confirmed: ["Confirmed", "good"], closed: [o.status.includes("Released") ? "Released" : "Not booked", "bad"] };
+  const [t, c] = map[o.stage] || ["With Chef", ""];
+  return `<span class="pill ${c}">${t}</span>`;
+}
+
+function tiffin(o) {
+  const steps = o.type === "custom" ? [["Request sent"], ["Chef's quote", o.quote ? money(o.quote.price) : ""]] : [["Sent to Chef"], ["Chef approves"]];
+  if (o.payment || o.stage === "deposit_due" || o.stage === "deposit_review") steps.push(["Zelle deposit", o.payment ? money(o.payment.depositDue, true) : ""]);
+  steps.push(["Booked", o.eventLabel || ""]);
+  const filled = { review: 1, quote_requested: 1, quote_ready: 2, deposit_due: 2, deposit_review: 2, confirmed: steps.length, closed: 0 }[o.stage] ?? 1;
+  const live = o.stage !== "confirmed" && o.stage !== "closed";
+  const tiers = steps.map((s, i) => `<div class="tier ${i < filled ? "full" : ""} ${o.stage === "closed" ? "closed" : ""} ${live && i === filled ? "now" : ""}"></div>`).reverse().join("");
+  const labels = steps.map((s, i) => `<div class="${i < filled ? "done" : live && i === filled ? "now" : ""}"><span>${s[0]}</span><span class="small muted num">${s[1] || ""}</span></div>`).reverse().join("");
+  return `<div class="tiffin" role="img" aria-label="Order progress"><div class="carrier"><div class="handle"></div>${tiers}<div class="base"></div></div><div class="steps">${labels}</div></div>`;
+}
+
+function orderDetail(id) {
+  const o = S.orders.find((x) => x.id === id);
+  if (!o) return navBar("", back("Orders")) + `<div class="body"></div>`;
+  const p = o.payment;
+  let action = "";
+  if (o.quote && o.stage === "quote_ready") {
+    action = `<div class="panel"><div class="h-card">Chef's quote</div><div class="big-money num">${money(o.quote.price)}</div>${o.quote.comment ? `<div>“${esc(o.quote.comment)}”</div>` : ""}<div class="small muted">Your request: ${esc(o.request)}</div><div class="row"><button class="btn soft" data-a="quote" data-x="${o.id}" data-y="no">Decline</button><button class="btn" data-a="quote" data-x="${o.id}" data-y="yes">Accept quote</button></div></div>`;
+  }
+  if (p && (p.state === "awaiting" || p.state === "review")) {
+    const step = (n, title, body) => `<div class="pstep"><span class="pnum">${n}</span><div class="stack" style="gap:8px;min-width:0;flex:1"><b>${title}</b>${body}</div></div>`;
+    action += `<div class="panel" style="gap:16px"><div class="h-card">${p.state === "review" ? "Confirmation received" : "Pay your deposit by Zelle"}</div>
+      ${p.state === "review" ? `<div class="notice">Thanks - we have your payment confirmation. Chef will check the payment and confirm your deposit here.</div>` : ""}
+      <div class="spread"><span class="big-money num">${money(p.depositDue, true)}</span><span style="text-align:right"><span class="small muted">Pay by</span><br><b style="color:var(--tur-ink)">${deadlineLabel(p.deadline)}</b></span></div>
+      ${step(1, `Scan this code to pay ${money(p.depositDue, true)}`, `<div class="small muted">Open your bank app, choose Zelle, and scan the code. Put <b>${o.id}</b> in the memo.</div>
+        <img class="zqr" src="${ZELLE_QR}" alt="Zelle QR code for Franklin Tiffin Room - scan with your bank app">
+        <div class="small muted">Can't scan? Send it by Zelle to:</div>
+        <button class="copyrow" data-a="copy" data-x="${esc(ST.payment.zelleTo)}"><span style="flex:1"><span class="small muted">Send to</span><br><span class="v">${esc(ST.payment.zelleTo)}</span></span><span class="small" style="color:var(--leaf)">Copy</span></button>
+        <button class="copyrow" data-a="copy" data-x="${o.id}"><span style="flex:1"><span class="small muted">Memo</span><br><span class="v">${o.id}</span></span><span class="small" style="color:var(--leaf)">Copy</span></button>`)}
+      ${step(2, "Take a screenshot of the confirmation", `<div class="small muted">When your bank shows the payment as sent, take a screenshot of that confirmation screen.</div>`)}
+      ${step(3, "Upload the screenshot here", `<div class="small muted">Chef checks it against the payment and confirms your deposit${p.state === "review" ? "" : " - that locks in your date"}.</div>
+        <label class="btn" style="display:grid;place-items:center;cursor:pointer">${p.proofs ? "Upload another confirmation" : "Upload payment confirmation"}<input type="file" accept="image/*" data-file="${o.id}" hidden></label>`)}
+      <div class="small muted">The balance of ${money(p.balance, true)} is due ${o.type === "lds" ? "on the day of your event" : o.type === "custom" ? "on the day of your order" : "at pickup"}.</div></div>`;
+  }
+  if (p && p.state === "paid") action += `<div class="notice">Deposit ${money(p.depositDue, true)} PAID; balance ${money(p.balance, true)}</div>`;
+  const lines = o.lines.map((l) => `<div class="line"><div><b>${l.kind === "lds" ? l.title : (l.qtyLabel || l.qty) + " × " + esc(l.title)}</b>${l.kind === "lds" ? `<div class="small muted">${esc(l.detail)}</div>` : ""}${l.note ? `<div class="small muted">“${esc(l.note)}”</div>` : ""}</div><span class="r num">${money(l.total, true)}</span></div>`).join("");
+  const closed = o.status.includes("Released") ? "This order was released because the deposit didn't arrive in time. Call Chef if you'd still like the date." : o.status.includes("Quote Declined") ? "You declined this quote." : "Chef isn't able to take this order. Please call to talk it through, or try another date.";
+  return navBar(o.id, back("Orders")) + `<div class="body"><div class="stack" style="padding:8px 16px 28px;gap:20px">
+    <div class="stack" style="gap:6px"><div>${pill(o)}</div><h2 class="h-big" style="font-size:27px">${esc(o.title)}</h2>${o.requestedTime ? `<div class="muted">${esc(o.requestedTime)}</div>` : ""}</div>
+    ${o.stage === "closed" ? `<div class="notice bad">${closed}</div>` : tiffin(o)}
+    ${action}
+    <div class="panel"><div class="h-card">Details</div>${o.type === "custom" ? `<div>${esc(o.request)}</div>` : ""}${lines}${o.subtotal ? `<div class="line" style="border-top:1px solid var(--line);padding-top:10px"><b>Total</b><b class="r num">${money(o.subtotal, true)}</b></div>` : ""}${o.address ? `<div class="small">📍 ${esc(o.address)}</div>` : ""}${o.type === "catering" ? `<button class="btn soft" data-a="reorder" data-x="${o.id}">Order these again</button>` : ""}</div>
+    <div class="small muted" style="text-align:center">Questions? Call Chef at ${esc(ST.phoneDisplay)}</div>
+  </div></div>`;
+}
+
+function tagChip(m) {
+  if (!m.tag || m.tag === "update") return "";
+  const tone = ["approved", "paid"].includes(m.tag) ? "good" : ["declined", "released", "not_received"].includes(m.tag) ? "bad" : ["deposit_due", "quote"].includes(m.tag) ? "act" : "";
+  return `<span class="pill ${tone}" style="margin-bottom:6px">${esc(m.tagLabel)}</span>\n`;
+}
+const FILTERS = { all: ["All", () => true], decisions: ["Approvals & declines", (m) => ["approved", "declined", "quote", "released"].includes(m.tag)], payments: ["Payments", (m) => ["deposit_due", "paid", "not_received", "screenshot", "released"].includes(m.tag)] };
+function messagesScreen() {
+  if (!S.user) return navBar("Notifications") + gate("Sign in to get Chef's approvals, deposit requests and updates about your orders.");
+  if (!S.inbox.length) return navBar("Notifications") + `<div class="body"><div class="stack pad" style="text-align:center;padding-top:100px"><div class="h-sec">No notifications yet</div><div class="muted">Chef's approvals, deposit requests and updates about your orders will show up here.</div></div></div>`;
+  const f = S.ui.filter || "all";
+  S.inbox.forEach((m) => { if (!m.tag) Object.assign(m, classify(m.text, m.header)); });
+  const chips = `<div class="row" style="gap:8px;overflow-x:auto;scrollbar-width:none">${Object.entries(FILTERS).map(([k, [label]]) => `<button class="opt ${f === k ? "on" : ""}" style="flex:none;padding:7px 12px;border-radius:99px;font-weight:600;font-size:13.5px" data-a="filter" data-x="${k}" aria-pressed="${f === k}">${label}</button>`).join("")}</div>`;
+  const items = S.inbox.filter((m) => FILTERS[f][1](m)).map((m) => {
+    const o = m.orderId && S.orders.find((x) => x.id === m.orderId);
+    const actions = m.quoteFor && o && o.stage === "quote_ready" ? `<div class="row" style="margin-top:10px"><button class="btn soft" data-a="quote" data-x="${m.quoteFor}" data-y="no">Decline</button><button class="btn" data-a="quote" data-x="${m.quoteFor}" data-y="yes">Accept</button></div>` : "";
+    return `<div class="bubble ${m.read ? "" : "unread"}"><span class="mark"></span><div class="b">${tagChip(m)}${m.header ? `<b>${esc(m.header)}</b>\n` : ""}${esc(m.text)}${actions}<div class="small muted" style="margin-top:8px;display:flex;justify-content:space-between"><span>${m.at}</span>${o ? `<button class="link small" data-a="goorder" data-x="${o.id}">View order</button>` : ""}</div></div></div>`;
+  }).join("") || `<div class="muted">Nothing here yet.</div>`;
+  return navBar("Notifications") + `<div class="body"><div class="stack" style="padding:8px 16px 24px;gap:14px">${chips}${items}</div></div>`;
+}
+
+function kitchenScreen() {
+  return navBar("Chef's Kitchen", `<button class="link" data-a="pop">Done</button>`) + `<div class="body" style="overflow:hidden;display:flex;flex-direction:column"><div class="small" style="padding:6px 16px;background:var(--tur-soft);color:var(--tur-ink)">Your real admin page, in preview mode with sample orders. In the app it opens your live kitchen, already signed in.</div><iframe class="kitchen" src="kitchen.html" title="Chef's Kitchen - admin page"></iframe></div>`;
+}
+function accountScreen() {
+  const u = S.user;
+  const top = cur();
+  if (top && top.screen === "kitchen") return kitchenScreen();
+  return navBar("Account") + `<div class="body"><div class="stack" style="padding:8px 16px 28px;gap:18px">
+    <button class="ocard" data-a="kitchen" style="flex-direction:row;align-items:center;gap:14px"><span class="mark" style="width:40px;height:40px;font-size:15px"></span><span class="stack" style="gap:2px;flex:1"><b class="h-card" style="font-size:18px">Chef's Kitchen</b><span class="small muted">Orders, approvals, menu, calendar and Setup - your admin page. Shows only on Chef's phone.</span></span><span class="muted">›</span></button>
+    ${u ? `<div class="panel"><div class="h-card" style="font-size:22px">${esc(u.first)} ${esc(u.last)}</div><div class="muted num">${phoneFmt(u.phone)}</div>${u.address ? `<div class="small"><span class="muted">Saved address</span><br>${esc(u.address)}</div>` : ""}</div>`
+      : `<div class="panel"><div class="h-card">Order with your phone number</div><div class="muted">Signing in lets you send orders, follow them and get Chef's replies.</div><button class="btn" data-a="signin">Sign in</button></div>`}
+    <div class="panel"><b class="small muted">Talk to Chef</b><button class="link" style="text-align:left" data-a="compose" data-x="custom">Request a custom quote</button><button class="link" style="text-align:left" data-a="compose" data-x="question">Ask a question</button><span>Call or text <b style="font-family:var(--f-logo);color:var(--red);font-size:17px">1-234-FTR-DOSE</b> (387-3673)</span><span>franklintiffinroom@gmail.com</span><span>Instagram @ftr.doseadda</span><span>Zelle: FranklinTiffinRoom</span></div>
+    <div class="panel"><b class="small muted">How ordering works</b><div>Chef reviews every order and replies here. ${S.settings.deposit ? "A 50% Zelle deposit locks in your date: catering is due 2 days before the day of your order, and the LIVE Dose Station by 10:00 AM 3 days before the event." : "Payment is collected in person."}</div><div>${S.settings.pickupOnly ? "Catering trays are picked up from our kitchen." : "Catering trays can be picked up or delivered."} The LIVE Dose Station comes to you.</div></div>
+    ${u ? `<div class="panel"><button class="link" style="text-align:left" data-a="signout">Sign out</button>${S.ui.confirmDelete ? `<div class="notice bad">Delete your account? You'll be signed out and your saved details removed.</div><div class="row"><button class="btn soft" data-a="nodelete">Keep it</button><button class="btn" style="background:var(--bad);color:#fff" data-a="delete">Delete</button></div>` : `<button class="link" style="text-align:left;color:var(--bad)" data-a="askdelete">Delete my account</button>`}<div class="small muted">Deleting removes your sign-in, saved name, address and messages. Order records are kept by Franklin Tiffin Room.</div></div>` : ""}
+    <div class="small muted" style="text-align:center">Version 1.0 · simulator</div>
+  </div></div>`;
+}
+
+// ------------------------------------------------------------------ sheets
+function sheetHTML() {
+  const sh = S.ui.sheet; if (!sh) return "";
+  let inner = "";
+  if (sh.type === "dish") inner = dishSheet(sh);
+  if (sh.type === "lds") inner = ldsSheet(sh);
+  if (sh.type === "cart") inner = sh.view === "checkout" ? checkoutSheet(sh) : sh.view === "placed" ? placedSheet(sh) : cartSheet();
+  if (sh.type === "signin") inner = signinSheet(sh);
+  if (sh.type === "compose") inner = composeSheet(sh);
+  if (sh.type === "multi") inner = multiSheet(sh);
+  const a = animNext; animNext = false;
+  return `<div class="sheet-back${a ? " anim" : ""}" data-a="backdrop"><div class="sheet" data-stop="1"><div class="grab"></div>${inner}</div></div>`;
+}
+const close = (label) => `<button class="link" data-a="close">${label || "Close"}</button>`;
+function stepper(name, val, min, max, step) {
+  return `<span class="stepper" role="group" aria-label="Quantity"><button data-a="step" data-x="${name}" data-y="-${step}" ${val - step < min ? "disabled" : ""} aria-label="Less">−</button><span class="num">${qtyText(val)}</span><button data-a="step" data-x="${name}" data-y="${step}" ${val + step > max ? "disabled" : ""} aria-label="More">+</button></span>`;
+}
+
+function dishSheet(sh) {
+  const d = dishById(sh.id), max = ST.maxOrderQtyPerItem;
+  sh.qty = sh.qty || 1;
+  if (!HALF() && sh.qty % 1) sh.qty = Math.ceil(sh.qty);
+  const meta = [d.size, d.servesMin > 1 ? `Serves ${d.servesMin}${d.servesMax > d.servesMin ? "–" + d.servesMax : ""}` : ""].filter(Boolean).join(" · ");
+  const noteOk = !d.requiresNote || (draft.note || "").trim();
+  return navBar("", close()) + `<div class="body"><div class="stack" style="padding:6px 20px 24px;gap:18px">
+    <div><h2 class="h-big">${esc(d.title)}</h2>${meta ? `<div class="muted" style="font-weight:600;margin-top:4px">${esc(meta)}</div>` : ""}</div>
+    <div style="font-size:16px">${esc(d.description)}</div>
+    <div class="panel"><div class="line"><span>Full tray</span><b class="r num">${money(d.price)}</b></div>${HALF() ? `<div class="line"><span>Half tray</span><b class="r num">${money(trayTotal(d.price, 0.5), true)}</b></div>` : ""}<div class="line" style="border-top:1px solid var(--line);padding-top:12px;align-items:center"><div><b>How many trays?</b><div class="small muted">${HALF() ? "Half trays welcome · " : ""}Up to ${max}</div></div><span class="r">${stepper("qty", sh.qty, STEP(), max, STEP())}</span></div></div>
+    ${sh.qty >= max ? `<div class="notice">Need more than ${max}? Call Chef at ${esc(ST.phoneDisplay)} so we can plan properly.</div>` : ""}
+    <label class="stack" style="gap:8px"><b>${d.requiresNote ? esc(d.notePrompt) : "Notes for Chef (optional)"}</b><textarea class="field" id="f-note" data-in="note" placeholder="${d.requiresNote ? "Required" : "Spice level, customizations…"}">${esc(draft.note || "")}</textarea></label>
+  </div></div><div class="cartbar"><button class="btn" data-a="adddish" ${noteOk ? "" : "disabled"} data-need-note="${d.requiresNote ? 1 : 0}">Add to order · ${money(trayTotal(d.price, sh.qty))}</button></div>`;
+}
+
+function ldsSheet(sh) {
+  if (!sh.total) { const c = S.cart.lds; sh.total = c ? c.total : LDS.minTotal; sh.md = c ? c.md : sh.total; if (c && c.note) draft.ldsnote = c.note; }
+  const price = ldsPrice(sh.total);
+  return navBar("", close()) + `<div class="body"><div class="stack" style="padding:6px 20px 24px;gap:20px">
+    <div><h2 class="h-big" style="font-size:27px">Plan your LIVE Dose Station</h2><div class="muted" style="margin-top:6px">Our crew sets up at your event and cooks every dose fresh. One setup fee per event.</div></div>
+    <div class="stack" style="gap:10px"><b>How many plates in total?</b><div class="pick">${[100, 150, 200].map((n) => `<button class="opt ${sh.total === n ? "on" : ""}" data-a="ldstotal" data-x="${n}" aria-pressed="${sh.total === n}"><b>${n}</b><span class="num small">${money(ldsPrice(n))}</span></button>`).join("")}</div><div class="small muted">Prices include the ${money(LDS.setupFee)} setup fee.</div></div>
+    <div class="panel"><b>Your mix</b>
+      <div class="line"><div><div class="h-card" style="font-size:17px">${LDS.mdTitle}</div><div class="small muted">${LDS.mdDescription}</div></div><b class="r num" style="font:800 24px var(--f-display)">${sh.md}</b></div>
+      <div class="line" style="border-top:1px solid var(--line);padding-top:12px"><div><div class="h-card" style="font-size:17px">${LDS.odTitle}</div><div class="small muted">${LDS.odDescription}</div></div><b class="r num" style="font:800 24px var(--f-display)">${sh.total - sh.md}</b></div>
+      <div class="line" style="align-items:center"><span class="small muted">${LDS.mdTitle}, in steps of ${LDS.increment}</span><span class="r">${stepper("md", sh.md, 0, sh.total, LDS.increment)}</span></div></div>
+    <label class="stack" style="gap:8px"><b>Notes for the crew (optional)</b><textarea class="field" id="f-ldsnote" data-in="ldsnote" placeholder="Spice level, timing, setup space…">${esc(draft.ldsnote || "")}</textarea></label>
+    <div class="notice">Travel: first ${LDS.travelFreeMiles} miles included, then $${LDS.travelFeePerBlock} per ${LDS.travelBlockMiles} miles. You'll see the exact fee once you enter the event address.</div>
+    <div class="notice warn">Delays on the event side (late access, space not ready) are charged at ${money(LDS.delayFeePerHour)}/hr.</div>
+    ${S.cart.lines.length ? `<div class="notice warn">Your catering trays will be replaced - catering and the LIVE Dose Station are booked as separate orders.</div>` : ""}
+  </div></div><div class="cartbar"><button class="btn" data-a="addlds">Add station · ${money(price)}</button></div>`;
+}
+
+function cartSheet() {
+  if (!cartCount()) return navBar("Your order", close()) + `<div class="body"><div class="stack pad" style="text-align:center;padding-top:120px"><div class="h-sec">Nothing here yet</div><div class="muted">Pick dishes from the menu, or plan a LIVE Dose Station.</div></div></div>`;
+  const total = cartTotal(), below = !S.cart.lds && total < minOrder();
+  const body = S.cart.lds
+    ? `<div class="panel"><div class="line"><div><div class="h-card">LIVE Dose Station</div><div class="muted small">${ldsDetail(S.cart.lds)}</div>${S.cart.lds.note ? `<div class="small muted">“${esc(S.cart.lds.note)}”</div>` : ""}</div><b class="r num">${money(S.cart.lds.price)}</b></div><button class="link" style="text-align:left;color:var(--bad)" data-a="clearcart">Remove</button></div>`
+    : `<div class="panel" style="gap:0;padding:0">${S.cart.lines.map((l, i) => `<div class="stack" style="gap:8px;padding:14px;${i ? "border-top:1px solid var(--line)" : ""}"><div class="line"><b class="h-card" style="font-size:17px">${esc(l.title)}</b><b class="r num">${money(trayTotal(l.price, l.qty))}</b></div>${l.note ? `<div class="small muted">“${esc(l.note)}”</div>` : ""}<div class="line" style="align-items:center"><button class="link small" style="color:var(--bad)" data-a="rmline" data-x="${i}">Remove</button><span class="r">${stepper("line:" + i, l.qty, STEP(), ST.maxOrderQtyPerItem, STEP())}</span></div></div>`).join("")}</div>`;
+  return navBar("Your order", close()) + `<div class="body"><div class="stack" style="padding:8px 16px 24px">${body}
+    <div class="line" style="padding:0 4px"><b>Subtotal</b><b class="r num" style="font-size:18px">${money(total, true)}</b></div>
+    ${below ? `<div class="notice warn">Catering orders start at ${money(minOrder())}. Add ${money(minOrder() - total, true)} more to check out.</div>` : ""}
+    <div class="small muted">${S.settings.deposit ? "A 50% Zelle deposit locks in your date after Chef approves." : "Payment is collected in person."}</div>
+    ${S.ui.sheet && S.ui.sheet.saved ? `<div class="notice">Saved to your account. Come back any time - on this phone or another - and it'll be here.</div>` : S.savedAt && S.user ? `<div class="small muted">✓ Saved to your account</div>` : ""}</div></div>
+    <div class="cartbar"><div class="row"><button class="btn soft" style="flex:0 0 40%" data-a="savecart">Save for later</button><button class="btn" data-a="tocheckout" ${below ? "disabled" : ""}>Choose date &amp; time</button></div></div>`;
+}
+const ldsDetail = (l) => [l.md ? l.md + " Mysore Masale Dose" : "", l.total - l.md ? (l.total - l.md) + " Onion Dose" : ""].filter(Boolean).join(" + ");
+
+function checkoutSheet(sh) {
+  const isLDS = !!S.cart.lds, plates = isLDS ? S.cart.lds.total : 0;
+  if (S.settings.pickupOnly) sh.ful = "pickup";
+  const ful = isLDS ? "delivery" : sh.ful || "pickup";
+  const needsAddr = isLDS || ful === "delivery";
+  const dates = chefDates().map((d) => ({ ...d, slots: slotsFor(d, isLDS ? "lds" : "catering", plates, ful) })).filter((d) => d.slots.length);
+  const date = dates.find((d) => d.date === sh.date), slot = date && date.slots.find((s) => s.id === sh.slot);
+  const addr = sh.addr; // { status, match, miles, inRange }
+  const addressReady = !needsAddr || (addr && ((addr.status === "match" && (addr.inRange || (isLDS && sh.askChef))) || (addr.status === "none" && sh.asTyped)));
+  const ready = addressReady && slot && (isLDS || ful === "delivery" || !S.settings.pickupOnly || sh.agree);
+
+  let sections = "";
+  if (!isLDS && !S.settings.pickupOnly) sections += `<div class="stack"><div class="h-sec" style="font-size:22px">Pickup or delivery</div><div class="pick" style="grid-template-columns:1fr 1fr">${["pickup", "delivery"].map((k) => `<button class="opt ${ful === k ? "on" : ""}" data-a="ful" data-x="${k}" aria-pressed="${ful === k}" style="font-weight:700">${k === "pickup" ? "Pickup" : "Delivery"}</button>`).join("")}</div>${ful === "delivery" ? `<div class="small muted">A delivery fee based on distance is added when Chef confirms. We deliver within ${ST.delivery.maxMiles} miles.</div>` : ""}</div>`;
+  if (!isLDS && S.settings.pickupOnly) sections += `<div class="stack"><div class="h-sec" style="font-size:22px">Pickup</div><div class="panel"><div>All catering orders are for pickup from our kitchen. Chef shares the pickup details when your order is confirmed.</div><div class="toggle"><span>I'll pick up my order</span><button class="switch ${sh.agree ? "on" : ""}" role="switch" aria-checked="${!!sh.agree}" data-a="flag" data-x="agree" aria-label="I'll pick up my order"></button></div></div></div>`;
+  if (needsAddr) {
+    let res = "";
+    if (addr && addr.status === "match") {
+      res = `<button class="choice on"><span class="radio"></span><span><b>${esc(addr.label)}</b><br><span class="small muted">About ${addr.miles} miles from our kitchen${addr.fee ? ` · <span style="color:var(--tur-ink)">Travel fee ${money(addr.fee)}</span>` : ""}</span></span></button>`;
+      if (!addr.inRange && !isLDS) res += `<div class="notice bad">We deliver within ${ST.delivery.maxMiles} miles, and this is about ${addr.miles} miles away. Try another address${S.settings.pickupOnly ? "" : " or switch to pickup"}.</div>`;
+      if (!addr.inRange && isLDS) res += `<div class="notice warn">This is about ${addr.miles} miles from our kitchen, past our ${ST.delivery.ldsMaxMiles}-mile range for the LIVE Dose Station.</div><div class="toggle"><span>Ask Chef to make an exception</span><button class="switch ${sh.askChef ? "on" : ""}" role="switch" aria-checked="${!!sh.askChef}" data-a="flag" data-x="askChef" aria-label="Ask Chef to make an exception"></button></div>`;
+    } else if (addr && addr.status === "none") {
+      res = `<div class="notice warn">We couldn't find that on the map. Check the street number, street name and ZIP.</div><div class="toggle"><span>Use it as typed - Chef will check it</span><button class="switch ${sh.asTyped ? "on" : ""}" role="switch" aria-checked="${!!sh.asTyped}" data-a="flag" data-x="asTyped" aria-label="Use it as typed"></button></div>`;
+    }
+    sections += `<div class="stack"><div class="h-sec" style="font-size:22px">${isLDS ? "Event address" : "Delivery address"}</div><div class="muted small">${isLDS ? "Where should our crew set up?" : "Where should we deliver?"} Try a sample address:</div>
+      <div class="row" style="flex-wrap:wrap;gap:6px">${PLACES.map((p) => `<button class="ghost small" data-a="sampleaddr" data-x="${p.key}">${p.label.split(",")[1].trim()}</button>`).join("")}</div>
+      <div class="row"><input class="field" id="f-addr" data-in="addr" placeholder="Street, town, ZIP" value="${esc(draft.addr || "")}"><button class="link" data-a="checkaddr">Check</button></div>${res}</div>`;
+  }
+  sections += `<div class="stack"><div class="h-sec" style="font-size:22px">Date</div><div class="datechips">${dates.map((d) => { const [wd, md] = dateLabel(d.date).split(", "); return `<button class="opt ${sh.date === d.date ? "on" : ""}" data-a="date" data-x="${d.date}" aria-pressed="${sh.date === d.date}"><span class="small" style="font-weight:600">${wd}</span><b>${md}</b></button>`; }).join("")}</div></div>`;
+  if (date) sections += `<div class="stack" style="gap:10px"><div class="h-sec" style="font-size:22px">${isLDS ? "Crew arrival" : ful === "delivery" ? "Delivery window" : "Pickup time"}</div>${date.slots.map((s) => `<button class="choice ${sh.slot === s.id ? "on" : ""}" data-a="slot" data-x="${s.id}"><span class="radio"></span><span><b>${s.title}</b>${s.sub ? ` <span class="small muted">${s.sub}</span>` : ""}</span></button>`).join("")}</div>`;
+
+  let review = "", total = 0;
+  if (ready) {
+    const o = buildOrder(sh, date, slot); total = o.subtotal;
+    review = `<div class="stack"><div class="h-sec" style="font-size:22px">Review</div>
+      <div class="panel">${o.lines.map((l) => `<div class="line"><div><b>${l.kind === "lds" ? l.title : (l.qtyLabel || l.qty) + " × " + esc(l.title)}</b>${l.kind === "lds" ? `<div class="small muted">${l.detail}</div>` : ""}${l.note ? `<div class="small muted">“${esc(l.note)}”</div>` : ""}</div><span class="r num">${money(l.total, true)}</span></div>`).join("")}
+      ${o.travelFee ? `<div class="small muted">Includes ${money(o.travelFee)} travel (first ${LDS.travelFreeMiles} miles included, then $${LDS.travelFeePerBlock} per ${LDS.travelBlockMiles} miles)</div>` : ""}${o.travelUnknown ? `<div class="small muted">Chef will add any travel fee after checking the address.</div>` : ""}
+      <div class="line" style="border-top:1px solid var(--line);padding-top:10px"><b>Subtotal</b><b class="r num">${money(o.subtotal, true)}</b></div></div>
+      <div class="panel"><div>📅 ${esc(o.requestedTime)}</div>${o.schedule ? `<div class="small" style="padding-left:24px"><div class="line"><span class="muted">Crew arrives</span><span class="r">${o.schedule.arrival}</span></div><div class="line"><span class="muted">First dose ready</span><span class="r">${o.schedule.firstDose}</span></div><div class="line"><span class="muted">Last dose ready</span><span class="r">${o.schedule.lastDose}</span></div><div class="line"><span class="muted">Wrap-up complete</span><span class="r">${o.schedule.wrapUp}</span></div></div>` : ""}${o.address ? `<div>📍 ${esc(o.address)}</div>` : ""}${o.outOfRange ? `<div style="color:var(--tur-ink)">Outside our usual range - Chef will decide</div>` : ""}${o.fulfillment === "delivery" && !isLDS ? `<div class="small muted">Delivery fee based on distance - Chef adds it when confirming.</div>` : ""}<div>💵 ${S.settings.deposit ? `50% Zelle deposit after Chef approves, balance at ${isLDS ? "the event" : o.fulfillment}.` : `Payment is collected at ${isLDS ? "the event" : o.fulfillment}.`}</div></div>
+      <div class="small muted">Nothing is charged now. Chef reviews every order and you'll get the answer here in the app.</div></div>`;
+  }
+  return navBar("Checkout", `<button class="link" data-a="view" data-x="cart">‹ Order</button>`, close()) +
+    `<div class="body"><div class="stack" style="padding:8px 16px 24px;gap:24px">${sections}${review}</div></div>
+    <div class="cartbar"><button class="btn" data-a="place" ${ready ? "" : "disabled"}>Send to Chef${ready ? " · " + money(total, true) : ""}</button></div>`;
+}
+
+function buildOrder(sh, date, slot) {
+  const isLDS = !!S.cart.lds, ev = dateLabel(date.date);
+  let lines, address = "", outOfRange = null, travel = 0, travelUnknown = false, requestedTime, schedule = null, distance = null;
+  if (isLDS) {
+    const c = S.cart.lds, a = sh.addr;
+    if (a.status === "match") { address = a.label; distance = a.miles; travel = a.fee || 0; if (!a.inRange) outOfRange = { miles: a.miles, max: ST.delivery.ldsMaxMiles }; }
+    else { address = (draft.addr || "").trim(); travelUnknown = true; }
+    lines = [{ kind: "lds", title: "LIVE Dose Station", detail: ldsDetail(c), note: c.note, total: c.price + travel, travelFee: travel }];
+    const start = slot.id.slice(5).split("-")[0];
+    schedule = ldsSchedule(start, c.total);
+    requestedTime = `${ev}, crew arrival ${schedule.arrival} - wrap-up ${schedule.wrapUp} (first dose ${schedule.firstDose}, last dose ${schedule.lastDose})`;
+  } else {
+    lines = S.cart.lines.map((l) => ({ kind: "catering", id: l.id, title: l.title, qty: l.qty, qtyLabel: qtyText(l.qty), note: l.note, total: trayTotal(l.price, l.qty) }));
+    if (slot.id === "slot:pickup-am" || slot.id === "slot:pickup-pm") requestedTime = `${ev}, ${slot.id === "slot:pickup-am" ? "pickup by 11:30 AM (lunch)" : "pickup by 6:00 PM (dinner)"}`;
+    else { const [a, b] = slot.id.slice(5).split("-"); requestedTime = `${ev}, ${t12(a)} - ${t12(b)}`; address = sh.addr && sh.addr.status === "match" ? sh.addr.label : (draft.addr || "").trim(); distance = sh.addr && sh.addr.miles; }
+  }
+  const subtotal = lines.reduce((s, l) => s + l.total, 0);
+  return { lines, subtotal, address, outOfRange, travelFee: travel, travelUnknown, requestedTime, schedule, distance, eventDate: date.date, eventLabel: ev, type: isLDS ? "lds" : "catering", fulfillment: isLDS || (sh.ful === "delivery" && !S.settings.pickupOnly) ? "delivery" : "pickup" };
+}
+
+function placedSheet(sh) {
+  const o = S.orders.find((x) => x.id === sh.orderId);
+  return navBar("", "", "") + `<div class="body"><div class="stack" style="padding:12px 20px 24px;gap:20px"><h2 class="h-big" style="font-size:34px">Sent to Chef</h2><b class="num">Order ${o.id} · ${money(o.subtotal, true)}</b>${tiffin(o)}<div class="muted">Chef reviews every order personally. ${S.settings.deposit ? "Once approved, you'll get Zelle details for the 50% deposit right here." : "You'll get the answer right here."} Try it: answer as Chef in the panel on the right.</div><button class="btn" data-a="goorder" data-x="${o.id}">See my order</button><button class="btn soft" data-a="close">Done</button></div></div>`;
+}
+
+function multiReady(sh) { return sh.ids.every((id) => !dishById(id).requiresNote || (draft["mnote:" + id] || "").trim()); }
+function multiSheet(sh) {
+  const total = sh.ids.reduce((t, id) => t + trayTotal(dishById(id).price, sh.q[id] || 1), 0);
+  return navBar("", close()) + `<div class="body"><div class="stack" style="padding:6px 16px 24px;gap:14px"><h2 class="h-big" style="font-size:28px">Add ${sh.ids.length} dishes</h2>
+    ${sh.ids.map((id) => { const d = dishById(id), q = sh.q[id] || 1; return `<div class="panel" style="gap:10px"><div class="line"><b class="h-card" style="font-size:18px">${esc(d.title)}</b><b class="r num">${money(trayTotal(d.price, q))}</b></div>
+      <div class="line" style="align-items:center"><span class="small muted">${esc([d.size, d.servesMin > 1 ? "Serves " + d.servesMin + (d.servesMax > d.servesMin ? "–" + d.servesMax : "") : ""].filter(Boolean).join(" · "))}</span><span class="r">${stepper("m:" + id, q, STEP(), ST.maxOrderQtyPerItem, STEP())}</span></div>
+      <input class="field" id="f-mnote-${id}" data-in="mnote:${id}" placeholder="${d.requiresNote ? esc(d.notePrompt) : "Notes for Chef (optional)"}" value="${esc(draft["mnote:" + id] || "")}">
+      ${d.requiresNote ? `<div class="small" style="color:var(--tur-ink)">Chef needs this to prepare ${esc(d.title)}.</div>` : ""}</div>`; }).join("")}
+    ${S.cart.lds ? `<div class="notice warn">Your LIVE Dose Station will be replaced - catering and the LIVE Dose Station are booked as separate orders.</div>` : ""}
+  </div></div><div class="cartbar"><button class="btn" data-a="multiadd" ${multiReady(sh) ? "" : "disabled"}>Add all to order · ${money(total, true)}</button></div>`;
+}
+
+function signinSheet(sh) {
+  const step = sh.step || "phone";
+  let inner = "";
+  if (step === "phone") {
+    const ok = String(draft.phone || "").replace(/\D/g, "").length === 10;
+    inner = `<h2 class="h-big">Sign in to order</h2><div class="muted">We'll send a 6-digit code to your mobile on WhatsApp. Already order from us on WhatsApp? Use that number and we'll know it's you.</div>
+      <input class="field num" id="f-phone" style="font-size:22px;font-weight:700" inputmode="tel" data-in="phone" placeholder="(908) 555-1234" value="${esc(phoneFmt(draft.phone || ""))}">
+      <button class="btn" data-a="sendcode" data-x="whatsapp" ${ok ? "" : "disabled"} data-enable="phone">Send code on WhatsApp</button>
+      <button class="btn soft" data-a="sendcode" data-x="sms" ${ok ? "" : "disabled"} data-enable="phone">Text me a code instead</button>
+      <div class="small muted">No WhatsApp? We'll send a text instead after 2 minutes. Message and data rates may apply.</div>`;
+  } else if (step === "code") {
+    inner = `<h2 class="h-big">Enter your code</h2><div class="muted">${sh.via === "sms" ? `Sent by text message to ${phoneFmt(draft.phone)}.` : `Sent on WhatsApp to ${phoneFmt(draft.phone)}. If it doesn't arrive, a text message follows in 2 minutes.`}</div><div class="notice warn"><span>Simulator: nothing is really sent. Your code is <b class="num" style="letter-spacing:.1em">246810</b>. In the real app, the code arrives on WhatsApp or by text message.</span></div>
+      <input class="field num" id="f-code" style="font-size:28px;font-weight:700;letter-spacing:.3em" inputmode="numeric" maxlength="6" data-in="code" placeholder="123456" value="${esc(draft.code || "")}">
+      ${sh.err ? `<div class="notice bad">${sh.err}</div>` : ""}<button class="btn" data-a="verify">Sign in</button><button class="link" style="text-align:left" data-a="signstep" data-x="phone">Change number</button>`;
+  } else {
+    inner = `<h2 class="h-big">Nice to meet you</h2><div class="muted">What name should Chef put on your orders?</div>
+      <input class="field" id="f-first" data-in="first" placeholder="First name" value="${esc(draft.first || "")}"><input class="field" id="f-last" data-in="last" placeholder="Last name" value="${esc(draft.last || "")}">
+      ${sh.err ? `<div class="notice bad">${sh.err}</div>` : ""}<button class="btn" data-a="savename">Continue</button>`;
+  }
+  return navBar("", step === "name" ? "" : close("Cancel")) + `<div class="body"><div class="stack" style="padding:8px 20px 24px;gap:16px"><div>${LOGO(24)}</div>${inner}</div></div>`;
+}
+
+function composeSheet(sh) {
+  const custom = sh.kind === "custom";
+  if (sh.sent) return navBar("", close()) + `<div class="body"><div class="stack" style="padding:8px 20px"><h2 class="h-big">${custom ? "Custom quote" : "Ask Chef"}</h2><div class="notice">Sent to Chef. You'll get the reply in Messages.</div><button class="btn" data-a="close">Done</button></div></div>`;
+  return navBar("", close()) + `<div class="body"><div class="stack" style="padding:8px 20px 24px;gap:16px"><h2 class="h-big">${custom ? "Custom quote" : "Ask Chef"}</h2>
+    <div class="muted">${custom ? "Tell Chef the dishes, how many people, the date and time, and pickup or delivery (with the address). Chef replies with a price you can accept here." : "Allergies, ingredients, sizes, timing - ask anything. Chef will get back to you."}</div>
+    <textarea class="field" id="f-compose" style="min-height:150px" data-in="compose" placeholder="${custom ? "e.g. North Indian lunch for 60 - paneer, dal, jeera rice, rotis. Pickup around noon." : "Your question"}">${esc(draft.compose || "")}</textarea>
+    ${S.user ? "" : `<div class="small muted">You'll sign in with your phone number so Chef can reply.</div>`}
+    ${sh.err ? `<div class="notice bad">${sh.err}</div>` : ""}<button class="btn" data-a="sendcompose">${custom ? "Send request" : "Send question"}</button></div></div>`;
+}
+
+// ------------------------------------------------------------------ chef side
+function chefHTML() {
+  const name = S.user ? `${S.user.first} ${S.user.last}` : "customer", ph = S.user ? "1" + S.user.phone : "";
+  const cards = [];
+  S.orders.forEach((o) => {
+    const lines = o.type === "custom" ? "" : o.lines.map((l) => l.kind === "lds" ? `- LIVE Dose Station: ${l.detail}${l.note ? ` (${l.note})` : ""} (+$${LDS.setupFee.toFixed(2)} setup)${l.travelFee ? ` (+$${l.travelFee.toFixed(2)} travel)` : ""} ($${l.total.toFixed(2)})` : `- ${l.qty}x ${l.title}${l.note ? ` (${l.note})` : ""} ($${l.total.toFixed(2)})`).join("\n");
+    if (o.stage === "review") {
+      const range = o.outOfRange ? `\nOUTSIDE RANGE: ~${o.outOfRange.miles} mi (your limit is ${o.outOfRange.max}) - customer asked for an exception` : "";
+      cards.push(`<div class="msg"><div class="hd">New app order needs approval</div>Order ${o.id} from ${esc(name)} (${ph}) via the FTR app\n${esc(lines)}\nSubtotal: $${o.subtotal.toFixed(2)}\n${o.fulfillment === "delivery" ? "Deliver to: " + esc(o.address) + (o.distance != null ? ` (~${o.distance} mi, verified)` : " (NOT verified - please check)") + (o.type === "lds" ? "" : "\n(Add delivery fee via Edit price)") : "Pickup"}\nRequested time: ${esc(o.requestedTime)}${range}
+        ${S.ui.editPrice === o.id ? `<div class="inline"><input id="f-price" data-in="price" inputmode="decimal" placeholder="New total, e.g. ${(o.subtotal + 50).toFixed(0)}"><button data-a="chef-price" data-x="${o.id}">Save price</button></div>` : ""}
+        <div class="btns"><button data-a="chef-approve" data-x="${o.id}">Approve</button><button data-a="chef-edit" data-x="${o.id}">Edit price</button><button data-a="chef-decline" data-x="${o.id}">Decline</button></div></div>`);
+    }
+    if (o.stage === "deposit_review") {
+      cards.push(`<div class="msg"><div class="hd">Deposit screenshot</div>${esc(name)} (${ph}) sent a Zelle screenshot for ${o.id}.\nDeposit due: ${money(o.payment.depositDue, true)} (order total ${money(o.subtotal, true)})\n\nOpen your bank app - tap Payment received only once you see the money.
+        ${o.payment.shot ? `<img src="${o.payment.shot}" alt="Customer's screenshot" style="display:block;max-height:160px;margin-top:8px;border-radius:8px">` : ""}
+        <div class="btns"><button data-a="chef-paid" data-x="${o.id}">Payment received</button><button data-a="chef-unpaid" data-x="${o.id}">Not received</button></div></div>`);
+    }
+    if (o.stage === "quote_requested") {
+      cards.push(`<div class="msg"><div class="hd">New custom request</div>Request ${o.id} from ${esc(name)} (${ph}):\n\n"${esc(o.request)}"
+        ${S.ui.quoting === o.id ? `<div class="inline"><input id="f-qprice" data-in="qprice" inputmode="decimal" placeholder="Price, e.g. 900"><input id="f-qnote" data-in="qnote" placeholder="Note for the customer (optional)"><button data-a="chef-sendquote" data-x="${o.id}">Send quote</button></div>` : ""}
+        <div class="btns"><button data-a="chef-quote" data-x="${o.id}">Send quote</button><button data-a="chef-cdecline" data-x="${o.id}">Decline</button></div></div>`);
+    }
+    if (o.stage === "deposit_due") {
+      cards.push(`<div class="msg" style="opacity:.85">Order ${o.id} approved - customer asked for a ${money(o.payment.depositDue, true)} Zelle deposit, due by ${deadlineLabel(o.payment.deadline)}. You'll get their screenshot to confirm.
+        <div class="btns"><button data-a="chef-release" data-x="${o.id}">Simulate: deadline passed</button></div></div>`);
+    }
+  });
+  S.questions && S.questions.forEach((q) => cards.push(`<div class="msg">Question from ${esc(name)} (${ph}) via the FTR app:\n\n"${esc(q)}"\n\nReply to them directly at that number.</div>`));
+  const rows = S.sheet.map((r) => `<tr><td>${esc(r.ts)}</td><td>${r.id}</td><td>${esc(r.name)}</td><td>${r.phone}</td><td>${esc(r.items)}</td><td class="num">${r.subtotal}</td><td>${r.fulfillment}</td><td>${esc(r.address)}</td><td>${esc(r.time)}</td><td>${esc(r.status)}</td><td>${esc(r.payment)}</td></tr>`).join("");
+  const sw = (k, label, hint) => `<div class="toggle" style="font-weight:500"><span><b>${label}</b><br><span class="small muted">${hint}</span></span><button class="switch ${S.settings[k] ? "on" : ""}" role="switch" aria-checked="${S.settings[k]}" aria-label="${label}" data-a="setting" data-x="${k}"></button></div>`;
+  const dayRows = baseDates().map((d, i) => `<div class="row" style="gap:6px;flex-wrap:wrap"><b style="width:92px;flex:none">${dateLabel(d)}</b>${[["am", "Lunch"], ["pm", "Dinner"], ["delivery", "Delivery"], ["lds", "LIVE Dose"]].map(([k, l]) => `<button class="opt ${S.days[i][k] ? "on" : ""}" style="padding:5px 10px;border-radius:99px;font-size:13px;font-weight:600${k === "delivery" && S.settings.pickupOnly ? ";opacity:.5" : ""}" data-a="day" data-x="${i}" data-y="${k}" aria-pressed="${S.days[i][k]}">${l}</button>`).join("")}</div>`).join("");
+  const admin = `<button class="ghost" data-a="kitchen" style="align-self:flex-start">Open Chef's Kitchen on the phone</button>
+  <div class="panel" style="background:var(--wa-bubble)"><div style="font:700 18px var(--f-display)">Admin switches <span class="small muted" style="font-family:var(--f-body);font-weight:400">· /admin › Setup and Calendar</span></div><div class="small muted">These stand in for your real admin page. The real app reads the menu and these settings straight from your bot server, so it always matches what you set there.</div>
+    <div class="stack" style="gap:12px;margin-top:10px">
+      ${sw("pickupOnly", "Catering: pickup only", "Off = customers can choose delivery")}
+      ${sw("halfTrays", "Half-tray orders", "Half tray = 65% of a full tray; minimum $100")}
+      ${sw("deposit", "Ask for a Zelle deposit", "Off = orders are confirmed when you approve")}
+      <div class="stack" style="gap:8px"><b class="small">Open dates</b>${dayRows}${S.settings.pickupOnly ? `<span class="small muted">Delivery only shows to customers when pickup-only is off.</span>` : ""}</div>
+    </div></div>`;
+  return `<div class="chef-head"><span class="mark"></span><h2>Chef's WhatsApp</h2><span class="small muted">What your bot sends you</span></div>${admin}
+    ${cards.length ? cards.join("") : `<div class="empty">Nothing waiting. Place an order on the phone and the approval prompt appears here.</div>`}
+    ${S.chefLog.length ? `<div><b class="small">Recent</b><div class="log">${S.chefLog.slice(0, 8).map((l) => `<span>${esc(l)}</span>`).join("")}</div></div>` : ""}
+    <div><b class="small">Google Sheet · Orders tab</b><div class="sheetrow" style="margin-top:6px"><table><thead><tr><th>Timestamp</th><th>Order ID</th><th>Customer Name</th><th>Phone</th><th>Items</th><th>Subtotal</th><th>Fulfillment</th><th>Address</th><th>Requested Time</th><th>Status</th><th>Payment</th></tr></thead><tbody>${rows || `<tr><td colspan="11" class="muted">Rows appear here as orders come in.</td></tr>`}</tbody></table></div></div>
+    ${S.user ? `<div><button class="ghost" data-a="samples">Add sample past orders</button> <span class="small muted">Shows how earlier orders are listed by month.</span></div>` : ""}
+    <details class="howto"><summary>Things to try</summary><ul class="small" style="margin:8px 0 0;padding-left:18px;display:grid;gap:4px">
+      <li>Add 2 trays of Bisi Bele Bhath, check out, sign in (the code arrives as a text at the top of the phone), then tap Approve here.</li>
+      <li>Upload any picture as the Zelle screenshot, then tap Payment received.</li>
+      <li>Add Palya - the app won't let you add it without choosing a vegetable.</li>
+      <li>Plan a 150-plate LIVE Dose Station and try the Philadelphia address to see the out-of-range request.</li>
+      <li>Ask for a custom quote, send a price from here, and accept it in Messages.</li>
+    </ul></details>`;
+}
+
+// ------------------------------------------------------------------ render
+function render(scrollTop) {
+  const screen = document.getElementById("screen");
+  const prevBody = screen.querySelector(".body");
+  const keep = !scrollTop && prevBody ? prevBody.scrollTop : 0;
+  const tab = S.ui.tab;
+  const content = tab === "menu" ? menuScreen() : tab === "orders" ? ordersScreen() : tab === "messages" ? messagesScreen() : accountScreen();
+  const ordersBadge = S.orders.filter(needsYou).length, msgBadge = unread();
+  const now = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(/ [AP]M/, "");
+  screen.innerHTML = `<div class="status"><span class="num">${now}</span><span class="island"></span><span>●●● ▮</span></div>${content}
+    <nav class="tabs" ${S.ui.tab === "account" && cur() && cur().screen === "kitchen" ? "hidden" : ""}>${["menu", "orders", "messages", "account"].map((t) => `<button class="tab ${tab === t ? "on" : ""}" data-a="tab" data-x="${t}" aria-current="${tab === t}">${ICON[t]}${t === "messages" ? "Notifications" : t[0].toUpperCase() + t.slice(1)}${t === "orders" && ordersBadge ? `<span class="badge">${ordersBadge}</span>` : ""}${t === "messages" && msgBadge ? `<span class="badge">${msgBadge}</span>` : ""}</button>`).join("")}</nav>
+    ${sheetHTML()}${S.ui.sms ? `<div class="sms" role="status"><div class="small muted"><b>${S.ui.smsVia === "sms" ? "Messages" : "WhatsApp"}</b> · now</div><div><b>FTR:</b> ${CODE} is your FTR verification code. (Simulator - nothing is really sent.)</div></div>` : ""}`;
+  const b = screen.querySelector(".sheet .body") || screen.querySelector(".body");
+  if (b && keep && !S.ui.sheet) b.scrollTop = keep;
+  document.getElementById("chef").innerHTML = chefHTML();
+  if (S.ui.tab === "messages" && S.user && unread()) setTimeout(() => { S.inbox.forEach((m) => (m.read = true)); save(); }, 1500);
+  save();
+}
+
+// ------------------------------------------------------------------ actions
+const A = {
+  tab(x) { if (S.ui.tab === x) S.ui.stack[x] = []; S.ui.tab = x; render(true); },
+  pop() { pop(); },
+  dish(x) { draft.note = ""; openSheet("dish", { id: x, qty: 1 }); },
+  lds() { draft.ldsnote = ""; openSheet("lds", {}); },
+  cart() { openSheet("cart", { view: "cart" }); },
+  close() { closeSheet(); },
+  backdrop() { closeSheet(); },
+  view(x) { S.ui.sheet.view = x; render(true); },
+  step(x, y) {
+    const d = Number(y), sh = S.ui.sheet;
+    if (x === "qty") sh.qty = Math.min(ST.maxOrderQtyPerItem, Math.max(STEP(), sh.qty + d));
+    else if (x.startsWith("m:")) { const id = x.slice(2); sh.q[id] = Math.min(ST.maxOrderQtyPerItem, Math.max(STEP(), (sh.q[id] || 1) + d)); }
+    else if (x === "md") sh.md = Math.min(sh.total, Math.max(0, sh.md + d));
+    else if (x.startsWith("line:")) { const l = S.cart.lines[+x.slice(5)]; l.qty = Math.min(ST.maxOrderQtyPerItem, Math.max(STEP(), l.qty + d)); }
+    render();
+  },
+  adddish() {
+    const sh = S.ui.sheet, d = dishById(sh.id), note = (draft.note || "").trim() || null;
+    if (d.requiresNote && !note) return;
+    if (S.cart.lds) S.cart = { lines: [], lds: null };
+    const ex = S.cart.lines.find((l) => l.id === d.id && l.note === note);
+    if (ex) ex.qty = Math.min(ST.maxOrderQtyPerItem, ex.qty + sh.qty); else S.cart.lines.push({ id: d.id, title: d.title, price: d.price, qty: sh.qty, note });
+    closeSheet();
+  },
+  ldstotal(x) { const sh = S.ui.sheet; sh.total = +x; sh.md = Math.min(sh.md, sh.total); render(); },
+  addlds() { const sh = S.ui.sheet; S.cart = { lines: [], lds: { total: sh.total, md: sh.md, note: (draft.ldsnote || "").trim() || null, price: ldsPrice(sh.total) } }; closeSheet(); },
+  clearcart() { S.cart = { lines: [], lds: null }; render(); },
+  rmline(x) { S.cart.lines.splice(+x, 1); render(); },
+  tocheckout() {
+    if (!S.user) { draft.phone = ""; draft.code = ""; openSheet("signin", { step: "phone", then: "checkout" }); return; }
+    startCheckout();
+  },
+  flag(x) { S.ui.sheet[x] = !S.ui.sheet[x]; render(); },
+  sampleaddr(x) { draft.addr = PLACES.find((p) => p.key === x).label; A.checkaddr(); },
+  checkaddr() {
+    const sh = S.ui.sheet, text = (draft.addr || "").trim();
+    sh.askChef = false; sh.asTyped = false;
+    if (text.length < 8 || !/\d/.test(text)) { sh.addr = { status: "none" }; render(); return; }
+    const p = PLACES.find((pl) => text.toLowerCase().includes(pl.key));
+    if (!p) sh.addr = { status: "none" };
+    else { sh.addr = { status: "match", label: p.label, miles: p.miles, inRange: p.miles <= (S.cart.lds ? ST.delivery.ldsMaxMiles : ST.delivery.maxMiles), fee: S.cart.lds ? travelFee(p.miles) : null }; draft.addr = p.label; if (S.user) S.user.address = p.label; }
+    render();
+  },
+  date(x) { const sh = S.ui.sheet; sh.date = x; sh.slot = null; const isLDS = !!S.cart.lds; const d = chefDates().find((c) => c.date === x); const sl = slotsFor(d, isLDS ? "lds" : "catering", isLDS ? S.cart.lds.total : 0, isLDS ? "delivery" : sh.ful || "pickup"); if (sl.length === 1) sh.slot = sl[0].id; render(); },
+  slot(x) { S.ui.sheet.slot = x; render(); },
+  place() {
+    const sh = S.ui.sheet, isLDS = !!S.cart.lds;
+    const dates = chefDates().map((d) => ({ ...d, slots: slotsFor(d, isLDS ? "lds" : "catering", isLDS ? S.cart.lds.total : 0, isLDS ? "delivery" : sh.ful || "pickup") }));
+    const date = dates.find((d) => d.date === sh.date), slot = date && date.slots.find((s) => s.id === sh.slot);
+    if (!date || !slot) return;
+    const b = buildOrder(sh, date, slot);
+    const titles = b.lines.map((l) => l.title);
+    const o = { id: orderId("FTR"), createdAt: stamp(), createdDay: todayISO(), ...b, title: isLDS ? "LIVE Dose Station" : titles.length <= 2 ? titles.join(" & ") : `${titles[0]}, ${titles[1]} +${titles.length - 2}`, status: "Pending Approval", stage: "review" };
+    S.orders.unshift(o); sheetRow(o);
+    tell(`Thanks! Your order ${o.id} ($${o.subtotal.toFixed(2)}) is being reviewed - we'll confirm shortly. Once Chef approves, you'll get Zelle details for the 50% deposit.`, { orderId: o.id });
+    S.cart = { lines: [], lds: null };
+    S.ui.sheet = { type: "cart", view: "placed", orderId: o.id };
+    render(true);
+  },
+  goorder(x) { S.ui.sheet = null; S.ui.tab = "orders"; S.ui.stack.orders = [{ screen: "order", id: x }]; render(true); },
+  order(x) { push("order", { id: x }); },
+  copy(x) { try { navigator.clipboard.writeText(x).catch(() => {}); } catch (e) { /* not allowed */ } },
+  reorder(x) {
+    const o = S.orders.find((q) => q.id === x);
+    if (S.cart.lds) S.cart = { lines: [], lds: null };
+    o.lines.forEach((l) => { const d = dishById(l.id); if (d) S.cart.lines.push({ id: d.id, title: d.title, price: d.price, qty: l.qty, note: l.note }); });
+    S.ui.tab = "menu"; render(true);
+  },
+  quote(x, y) {
+    const o = S.orders.find((q) => q.id === x); if (!o || o.stage !== "quote_ready") return;
+    if (y === "yes" && !S.settings.deposit) {
+      setStatus(o, "Confirmed", "confirmed");
+      tell(`Confirmed! Your custom order ${o.id} is booked for ${money(o.subtotal, true)}.\nPayment is collected in person. Thank you!`, { orderId: o.id });
+      chefLog(`CONFIRMED: custom order ${o.id} at ${money(o.subtotal, true)}.`);
+    } else if (y === "yes") {
+      const dep = Math.round(o.subtotal * 50) / 100;
+      o.payment = { state: "awaiting", depositDue: dep, balance: o.subtotal - dep, deadline: Date.now() + 24 * 3600000 };
+      setStatus(o, "Awaiting Deposit", "deposit_due");
+      tell(`Great - you accepted the quote for custom order ${o.id} (${money(o.subtotal, true)}).`, { orderId: o.id });
+      tell(depositText(o), { orderId: o.id });
+      chefLog(`ACCEPTED: custom order ${o.id} at ${money(o.subtotal, true)}. Deposit requested.`);
+    } else {
+      setStatus(o, "Quote Declined", "closed");
+      tell(`No problem - quote ${o.id} declined. Send "hi" any time if you'd like something else.`, { orderId: o.id });
+      chefLog(`Customer declined the quote for ${o.id}.`);
+    }
+    render();
+  },
+  // sign-in
+  sendcode(x) { if (String(draft.phone || "").replace(/\D/g, "").length !== 10) return; S.ui.sheet.step = "code"; S.ui.sheet.via = x || "whatsapp"; S.ui.smsVia = S.ui.sheet.via; S.ui.sms = true; render(); setTimeout(() => { S.ui.sms = false; render(); }, 15000); },
+  signstep(x) { S.ui.sheet.step = x; S.ui.sheet.err = null; render(); },
+  verify() {
+    const sh = S.ui.sheet;
+    if ((draft.code || "").replace(/\D/g, "") !== CODE) { sh.err = "That code isn't right. Please check the text message and try again."; draft.code = ""; render(); return; }
+    sh.err = null; sh.step = "name"; S.ui.sms = false; render();
+  },
+  savename() {
+    const sh = S.ui.sheet, f = (draft.first || "").trim(), l = (draft.last || "").trim();
+    if (!f || !l) { sh.err = "Please enter your first and last name."; render(); return; }
+    const cap = (w) => w.charAt(0).toUpperCase() + w.slice(1);
+    S.user = { phone: String(draft.phone).replace(/\D/g, ""), first: cap(f), last: cap(l) };
+    const then = sh.then;
+    S.ui.sheet = null;
+    if (then === "checkout") startCheckout(); else if (then === "save") { openSheet("cart", { view: "cart" }); A.savecart(); } else if (then === "compose") openSheet("compose", { kind: sh.kind }); else render(true);
+  },
+  signin() { draft.phone = ""; draft.code = ""; openSheet("signin", { step: "phone" }); },
+  signout() { S.user = null; render(true); },
+  askdelete() { S.ui.confirmDelete = true; render(); },
+  nodelete() { S.ui.confirmDelete = false; render(); },
+  delete() { S.user = null; S.inbox = []; S.ui.confirmDelete = false; render(true); },
+  compose(x) { draft.compose = ""; openSheet("compose", { kind: x }); },
+  sendcompose() {
+    const sh = S.ui.sheet, text = (draft.compose || "").trim();
+    if (!S.user) { openSheet("signin", { step: "phone", then: "compose", kind: sh.kind }); return; }
+    if (sh.kind === "custom" && text.length < 10) { sh.err = "Please tell us a bit more - the dishes, how many people, the date and pickup or delivery."; render(); return; }
+    if (!text) return;
+    if (sh.kind === "custom") {
+      const o = { id: orderId("CUST"), createdAt: stamp(), createdDay: todayISO(), type: "custom", request: text, title: "Custom request", lines: [], subtotal: 0, status: "Custom - Awaiting Quote", stage: "quote_requested" };
+      S.orders.unshift(o); sheetRow(o);
+      tell(`Thanks! Your request ${o.id} has gone to the chef. You'll get a price quote here soon. If it's urgent, call us at ${ST.phoneDisplay}.`, { orderId: o.id });
+    } else {
+      S.questions = S.questions || []; S.questions.unshift(text);
+      tell(`Thanks - we've passed your question along and will get back to you soon. If it's urgent, give us a call at ${ST.phoneDisplay}.`);
+    }
+    sh.sent = true; render();
+  },
+  // chef
+  "chef-approve"(x) {
+    const o = S.orders.find((q) => q.id === x);
+    if (!S.settings.deposit) {
+      setStatus(o, "Confirmed", "confirmed");
+      tell(`Good news - your order ${o.id} is confirmed! Subtotal: $${o.subtotal.toFixed(2)}. We'll have it ready for your requested time. Payment will be collected at ${o.fulfillment}. See you then!`, { orderId: o.id });
+      chefLog(`Order ${o.id} confirmed - customer notified (Zelle deposits are off).`);
+      render();
+      return;
+    }
+    const dep = Math.round(o.subtotal * 50) / 100;
+    o.payment = { state: "awaiting", depositDue: dep, balance: Math.round((o.subtotal - dep) * 100) / 100, deadline: deadlineFor(o).getTime() };
+    setStatus(o, "Awaiting Deposit", "deposit_due");
+    tell(`Good news - Chef approved your order ${o.id}! Total: $${o.subtotal.toFixed(2)}.`, { orderId: o.id });
+    tell(depositText(o), { orderId: o.id });
+    chefLog(`Approved ${o.id}. Deposit ${money(dep, true)} requested.`);
+    render();
+  },
+  "chef-edit"(x) { S.ui.editPrice = S.ui.editPrice === x ? null : x; draft.price = ""; render(); },
+  "chef-price"(x) {
+    const v = parseFloat(String(draft.price || "").replace(/[^0-9.]/g, ""));
+    if (!(v > 0)) return;
+    const o = S.orders.find((q) => q.id === x); o.subtotal = v; S.ui.editPrice = null; sheetRow(o);
+    chefLog(`New price for ${o.id}: ${money(v, true)}. Tap Approve to send it.`); render();
+  },
+  "chef-decline"(x) {
+    const o = S.orders.find((q) => q.id === x); setStatus(o, "Declined", "closed");
+    tell(`Sorry, we're not able to take order ${o.id} right now. Please reach out to us directly, or type "menu" to try a different order.`, { orderId: o.id });
+    chefLog(`Declined ${o.id} - customer notified.`); render();
+  },
+  "chef-paid"(x) {
+    const o = S.orders.find((q) => q.id === x); o.payment.state = "paid"; setStatus(o, "Confirmed", "confirmed");
+    tell(`Payment received - thank you! Your ${money(o.payment.depositDue, true)} deposit for order ${o.id} is confirmed and your date is locked in. The balance of ${money(o.payment.balance, true)} is due ${o.type === "lds" ? "on the day of your event" : "at pickup"}.`, { orderId: o.id, header: "Deposit confirmed" });
+    chefLog(`${o.id} confirmed - customer notified.`); render();
+  },
+  "chef-unpaid"(x) {
+    const o = S.orders.find((q) => q.id === x); o.payment.state = "awaiting"; setStatus(o, "Awaiting Deposit", "deposit_due");
+    tell(`Chef hasn't received the ${money(o.payment.depositDue, true)} deposit for order ${o.id} yet. Please check the Zelle payment went to ${ST.payment.zelleTo} and send a new screenshot.`, { orderId: o.id });
+    chefLog(`${o.id}: payment not received - customer asked to check.`); render();
+  },
+  "chef-release"(x) {
+    const o = S.orders.find((q) => q.id === x); o.payment.state = "released"; setStatus(o, "Released - Unpaid", "closed");
+    tell(`We didn't receive the deposit for order ${o.id} by the deadline, so the date has been released. Please call Chef at ${ST.phoneDisplay} if you'd still like to book.`, { orderId: o.id });
+    chefLog(`${o.id} released - unpaid.`); render();
+  },
+  "chef-quote"(x) { S.ui.quoting = S.ui.quoting === x ? null : x; draft.qprice = ""; draft.qnote = ""; render(); },
+  "chef-sendquote"(x) {
+    const v = parseFloat(String(draft.qprice || "").replace(/[^0-9.]/g, "")); if (!(v > 0)) return;
+    const o = S.orders.find((q) => q.id === x); o.subtotal = v; o.quote = { price: v, comment: (draft.qnote || "").trim() || null };
+    setStatus(o, "Quote Sent", "quote_ready"); S.ui.quoting = null;
+    tell(`Request ${o.id}\n"${o.request}"\n\nPrice: $${v.toFixed(2)}${o.quote.comment ? `\nChef's note: ${o.quote.comment}` : ""}\n\nA 50% Zelle deposit locks in your date. Would you like to go ahead?`, { orderId: o.id, header: "Your quote is ready", quoteFor: o.id });
+    chefLog(`Quote for ${o.id} sent to the customer.`); render();
+  },
+  "chef-cdecline"(x) {
+    const o = S.orders.find((q) => q.id === x); setStatus(o, "Declined", "closed");
+    tell(`Sorry, the chef isn't able to take custom request ${o.id}.`, { orderId: o.id });
+    chefLog(`Custom request ${o.id} declined.`); render();
+  },
+  samples() {
+    const mk = (id, daysAgo, title, lines, status, stage) => {
+      const ev = addDays(todayISO(), -daysAgo), sub = lines.reduce((s, l) => s + l.total, 0);
+      return { id, createdAt: dateLabel(addDays(ev, -10)), createdDay: addDays(ev, -10), eventDate: ev, eventLabel: dateLabel(ev), type: lines[0].kind === "lds" ? "lds" : "catering",
+        fulfillment: lines[0].kind === "lds" ? "delivery" : "pickup", title, lines, subtotal: sub, status, stage, requestedTime: `${dateLabel(ev)}, pickup by 11:30 AM (lunch)`, sample: true,
+        payment: stage === "confirmed" ? { state: "paid", depositDue: sub / 2, balance: sub / 2, deadline: Date.now() } : null };
+    };
+    S.orders = S.orders.filter((o) => !o.sample).concat([
+      mk("FTR-SAMPLE1", 14, "Bisi Bele Bhath & Payasa", [{ kind: "catering", id: "bisi-bele-bhath", title: "Bisi Bele Bhath", qty: 1, total: 170 }, { kind: "catering", id: "payasa", title: "Payasa", qty: 1, total: 100 }], "Confirmed", "confirmed"),
+      mk("FTR-SAMPLE2", 40, "Vangi Bhath & Mosaranna", [{ kind: "catering", id: "vangi-bhath", title: "Vangi Bhath", qty: 1, total: 150 }, { kind: "catering", id: "mosaranna", title: "Mosaranna", qty: 1, total: 120 }], "Confirmed", "confirmed"),
+      mk("FTR-SAMPLE3", 45, "Maddur Vade & Saaru", [{ kind: "catering", id: "maddur-vade", title: "Maddur Vade", qty: 2, total: 200 }, { kind: "catering", id: "saaru", title: "Saaru", qty: 1, total: 100 }], "Declined", "closed")
+    ]);
+    chefLog("Added 3 sample past orders (marked FTR-SAMPLE) to show the Past orders list.");
+    render();
+  },
+  kitchen() { S.ui.tab = "account"; S.ui.stack.account = [{ screen: "kitchen" }]; render(true); },
+  selectmode() { S.ui.selecting = !S.ui.selecting; S.ui.picked = []; render(); },
+  pick(x) { const i = S.ui.picked.indexOf(x); if (i >= 0) S.ui.picked.splice(i, 1); else S.ui.picked.push(x); render(); },
+  multi() { if (!S.ui.picked.length) return; S.ui.picked.forEach((id) => delete draft["mnote:" + id]); openSheet("multi", { ids: S.ui.picked.slice(), q: {} }); },
+  multiadd() {
+    const sh = S.ui.sheet; if (!multiReady(sh)) return;
+    if (S.cart.lds) S.cart = { lines: [], lds: null };
+    sh.ids.forEach((id) => { const d = dishById(id), note = (draft["mnote:" + id] || "").trim() || null, q = sh.q[id] || 1; const ex = S.cart.lines.find((l) => l.id === id && l.note === note); if (ex) ex.qty = Math.min(ST.maxOrderQtyPerItem, ex.qty + q); else S.cart.lines.push({ id, title: d.title, price: d.price, qty: q, note }); });
+    S.ui.selecting = false; S.ui.picked = []; closeSheet();
+  },
+  savecart() {
+    if (!S.user) { draft.phone = ""; draft.code = ""; openSheet("signin", { step: "phone", then: "save" }); return; }
+    S.savedAt = stamp(); S.ui.sheet.saved = true; render();
+  },
+  ful(x) { const sh = S.ui.sheet; if (sh.ful === x) return; sh.ful = x; sh.date = null; sh.slot = null; sh.addr = null; render(); },
+  filter(x) { S.ui.filter = x; render(); },
+  setting(x) {
+    S.settings[x] = !S.settings[x];
+    const names = { pickupOnly: "Catering: pickup only", halfTrays: "Half-tray orders", deposit: "Ask for a Zelle deposit" };
+    if (x === "halfTrays" && !S.settings.halfTrays) S.cart.lines.forEach((l) => (l.qty = Math.ceil(l.qty)));
+    if (S.ui.sheet && S.ui.sheet.view === "checkout") { S.ui.sheet.date = null; S.ui.sheet.slot = null; }
+    chefLog(`Setup: ${names[x]} turned ${S.settings[x] ? "on" : "off"}.`);
+    render();
+  },
+  day(x, y) {
+    S.days[+x][y] = !S.days[+x][y];
+    if (S.ui.sheet && S.ui.sheet.view === "checkout") { S.ui.sheet.date = null; S.ui.sheet.slot = null; }
+    chefLog(`Calendar: ${dateLabel(baseDates()[+x])} ${{ am: "Lunch pickup", pm: "Dinner pickup", delivery: "Delivery", lds: "LIVE Dose" }[y]} ${S.days[+x][y] ? "opened" : "closed"}.`);
+    render();
+  },
+  reset() { S = fresh(); Object.keys(draft).forEach((k) => delete draft[k]); render(true); }
+};
+function startCheckout() {
+  draft.addr = (S.user && S.user.address) || "";
+  animNext = !S.ui.sheet;
+  S.ui.sheet = { type: "cart", view: "checkout" };
+  if (S.cart.lds && draft.addr) A.checkaddr(); else render(true);
+}
+function depositText(o) {
+  const p = o.payment;
+  return `To lock in order ${o.id}, please send a 50% deposit by Zelle:\n\nAmount: ${money(p.depositDue, true)}\nSend to: ${ST.payment.zelleTo}\nMemo: ${o.id}\n\nPlease pay by ${deadlineLabel(p.deadline)}. The balance of ${money(p.balance, true)} is due ${o.type === "lds" ? "on the day of your event" : o.type === "custom" ? "on the day of your order" : "at pickup"}.\n\nAfter you pay, take a screenshot of the Zelle confirmation and upload it on your order page in the app.`;
+}
+
+// one listener for every tap
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-a]");
+  if (!el) return;
+  if (el.dataset.a === "backdrop" && e.target.closest("[data-stop]")) return;
+  const fn = A[el.dataset.a];
+  if (fn) { e.preventDefault(); fn(el.dataset.x, el.dataset.y); }
+});
+// typing updates drafts without redrawing (keeps the cursor in place)
+document.addEventListener("input", (e) => {
+  const k = e.target.dataset && e.target.dataset.in;
+  if (!k) return;
+  let v = e.target.value;
+  if (k === "phone") { const pos = v.length; v = phoneFmt(v); e.target.value = v; draft.phone = v.replace(/\D/g, ""); document.querySelectorAll('[data-enable="phone"]').forEach((btn) => (btn.disabled = draft.phone.length !== 10)); return; }
+  if (k === "code") { v = v.replace(/\D/g, "").slice(0, 6); e.target.value = v; draft.code = v; if (v.length === 6) A.verify(); return; }
+  draft[k] = v;
+  if (k.startsWith("mnote:")) { const btn = document.querySelector('[data-a="multiadd"]'); if (btn && S.ui.sheet && S.ui.sheet.type === "multi") btn.disabled = !multiReady(S.ui.sheet); }
+  if (k === "note") { const btn = document.querySelector('[data-a="adddish"]'); if (btn && btn.dataset.needNote === "1") btn.disabled = !v.trim(); }
+  if (k === "addr" && S.ui.sheet && S.ui.sheet.addr) { /* address changed: needs a fresh check */ }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" || !e.target.dataset) return;
+  if (e.target.dataset.in === "addr") { e.preventDefault(); A.checkaddr(); }
+  if (e.target.dataset.in === "phone") { e.preventDefault(); A.sendcode(); }
+});
+// Zelle screenshot upload
+document.addEventListener("change", (e) => {
+  const id = e.target.dataset && e.target.dataset.file;
+  if (!id || !e.target.files || !e.target.files[0]) return;
+  const o = S.orders.find((q) => q.id === id);
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas"), s = Math.min(1, 320 / Math.max(img.width, img.height));
+      c.width = img.width * s; c.height = img.height * s; c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      o.payment.shot = c.toDataURL("image/jpeg", 0.7); finishProof(o);
+    };
+    img.onerror = () => finishProof(o);
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(e.target.files[0]);
+});
+function finishProof(o) {
+  o.payment.state = "review"; o.payment.proofs = (o.payment.proofs || 0) + 1;
+  setStatus(o, "Deposit Under Review", "deposit_review");
+  tell(`Thanks! We received your payment screenshot for order ${o.id}. Chef will confirm the deposit shortly and you'll get a payment acknowledgement here.`, { orderId: o.id });
+  render();
+}
+
+render(true);
+})();
+</script>
+
+</body>
+</html>
