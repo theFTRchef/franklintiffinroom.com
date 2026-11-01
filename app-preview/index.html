@@ -186,6 +186,11 @@ iframe.kitchen { flex: 1; width: 100%; border: 0; background: var(--page); }
 .chef { background: var(--wa); border: 1px solid var(--line); border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .chef-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
 .chef-head h2 { font: 700 21px/1.2 var(--f-display); margin: 0; flex: 1; min-width: 200px; }
+.chef .msg .chatlog { white-space: normal; display: grid; gap: 4px; margin: 8px 0 2px; padding: 8px 10px; border-radius: 10px; background: rgba(0,0,0,.04); font-size: 14px; }
+.cbub { display: grid; gap: 2px; max-width: 82%; }
+.cbub .t { padding: 8px 12px; border-radius: 14px; background: var(--surface, #fff); border: 1px solid var(--line); }
+.cbub.me { justify-self: end; text-align: right; }
+.cbub.me .t { background: var(--leaf); color: var(--leaf-ink, #fff6e6); border-color: transparent; text-align: left; }
 .chef .msg { background: var(--wa-bubble); border-radius: 4px 16px 16px 16px; padding: 12px 14px; white-space: pre-wrap; word-wrap: break-word; box-shadow: 0 1px 1px rgba(0,0,0,.06); }
 .chef .msg .hd { font-weight: 700; margin-bottom: 4px; }
 .chef .btns { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1px; margin-top: 10px; border-top: 1px solid var(--line); background: var(--line); border-radius: 0 0 12px 12px; overflow: hidden; }
@@ -269,8 +274,12 @@ function hhmm(n) { return String(Math.floor(n / 60) % 24).padStart(2, "0") + ":"
 
 // Chef's open dates: the next two weekends. What each date offers comes from the
 // calendar switches in the Chef panel (Lunch, Dinner, Delivery, LIVE Dose) - like /admin.
-const LDS_WINDOWS = [{ start: "11:00", end: "16:00" }, { start: "11:00", end: "16:00" }, { start: "17:00", end: "21:00" }, { start: "11:00", end: "16:00" }];
-const DEFAULT_DAYS = [{ am: true, pm: true, delivery: true, lds: true }, { am: false, pm: true, delivery: true, lds: false }, { am: true, pm: false, delivery: false, lds: true }, { am: true, pm: true, delivery: true, lds: false }];
+// Standard times (admin › Setup › Standard times): used on every chef day.
+const SESSIONS = [{ start: "11:00", end: "13:00", label: "Lunch" }, { start: "19:00", end: "21:00", label: "Evening" }];
+const EXT = { minutes: 30, fee: 100 };
+const PICKUP_PM = "18:30";
+const DEFAULT_DAYS = [{ am: true, pm: true, delivery: false, ldsL: true, ldsE: true }, { am: false, pm: true, delivery: false, ldsL: false, ldsE: false }, { am: true, pm: true, delivery: false, ldsL: true, ldsE: false }, { am: true, pm: true, delivery: false, ldsL: false, ldsE: true }];
+const extraDoseNote = () => `Extra doses on site (while supplies last): $${LDS.pricePerHundred / 100} per dose, in 10s.`;
 const DEFAULT_SETTINGS = { pickupOnly: true, halfTrays: false, deposit: true };
 function baseDates() {
   let sat = todayISO();
@@ -280,13 +289,13 @@ function baseDates() {
 function chefDates() {
   return baseDates().map((date, i) => {
     const t = S.days[i];
-    return { date, pickupAM: t.am, pickupPM: t.pm, catering: t.delivery && !S.settings.pickupOnly ? [{ start: "12:00", end: "18:00" }] : [], liveDose: t.lds ? [LDS_WINDOWS[i]] : [] };
+    return { date, pickupAM: t.am, pickupPM: t.pm, catering: t.delivery && !S.settings.pickupOnly ? [{ start: "12:00", end: "18:00" }] : [], liveDose: SESSIONS.filter((w, k) => t[k ? "ldsE" : "ldsL"]).map((w) => ({ ...w })) };
   }).filter((d) => d.pickupAM || d.pickupPM || d.catering.length || d.liveDose.length);
 }
 function summary(d) {
   const parts = [], p = [];
   if (d.pickupAM) p.push("11:30 AM");
-  if (d.pickupPM) p.push("6 PM");
+  if (d.pickupPM) p.push("6:30 PM");
   if (p.length) parts.push("Catering pickup " + p.join(" or "));
   if (d.catering.length) parts.push("Catering delivery " + d.catering.map((w) => tShort(w.start) + "-" + tShort(w.end)).join(", "));
   if (d.liveDose.length) parts.push("LIVE Dose " + d.liveDose.map((w) => tShort(w.start) + "-" + tShort(w.end)).join(", "));
@@ -295,9 +304,8 @@ function summary(d) {
 function ldsMinutes(total) { return LDS.setupMinutes + (LDS.servingMinutesByTotal[total] || Math.round(total * 0.6)) + LDS.closeoutMinutes; }
 function slotsFor(d, kind, plates, ful) {
   if (kind === "lds") {
-    const len = ldsMinutes(plates), out = [];
-    d.liveDose.forEach((w) => { for (let s = mins(w.start); s + len <= mins(w.end); s += len) out.push({ id: "slot:" + hhmm(s) + "-" + hhmm(s + len), title: t12(hhmm(s)) + " - " + t12(hhmm(s + len)) }); });
-    return out;
+    // The standard on-site sessions open that day.
+    return d.liveDose.map((w) => ({ id: "slot:" + w.start + "-" + w.end, title: t12(w.start) + " - " + t12(w.end), sub: w.label + " session - on-site serving time" }));
   }
   const out = [];
   if (ful === "delivery") {
@@ -305,7 +313,7 @@ function slotsFor(d, kind, plates, ful) {
     return out;
   }
   if (d.pickupAM) out.push({ id: "slot:pickup-am", title: "Pickup by 11:30 AM", sub: "Lunch order" });
-  if (d.pickupPM) out.push({ id: "slot:pickup-pm", title: "Pickup by 6:00 PM", sub: "Dinner order" });
+  if (d.pickupPM) out.push({ id: "slot:pickup-pm", title: "Pickup by 6:30 PM", sub: "Dinner order" });
   return out;
 }
 function ldsSchedule(start, total) {
@@ -334,7 +342,7 @@ function orderId(prefix) { return prefix + "-" + Date.now().toString(36).toUpper
 function stamp() { return new Date().toLocaleString("en-US", { timeZone: TZ, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); }
 
 // ------------------------------------------------------------------ state
-const KEY = "ftr-sim-v1";
+const KEY = "ftr-sim-v2";
 function fresh() {
   return {
     user: null, // { phone, first, last }
@@ -369,6 +377,7 @@ const unread = () => S.inbox.filter((m) => !m.read).length;
 // What the bot would text the customer -> lands in the app's Messages tab.
 // Every message is labelled, the same rules as the server (appInbox.js).
 const TAGS = [
+  ["chef_message", "Message from Chef", /^Message from Chef about your order/i],
   ["paid", "Payment confirmed", /^Payment received - thank you/i],
   ["not_received", "Payment not received", /hasn't received/i],
   ["released", "Released", /released/i],
@@ -376,17 +385,35 @@ const TAGS = [
   ["screenshot", "Screenshot received", /received your payment screenshot/i],
   ["declined", "Declined", /not able to take|isn't able to take|declined\b/i],
   ["approved", "Approved", /Chef approved your order|is confirmed!|^Confirmed! Your custom order|accepted the quote/i],
-  ["received", "Received", /is being reviewed|has gone to the chef|passed your question along/i]
+  ["received", "Received", /is being reviewed|has gone to the chef|passed your question along|Chef will confirm your order .* shortly/i]
 ];
 function classify(text, header) {
   if (/quote is ready/i.test(header || "")) return { tag: "quote", tagLabel: "Quote ready" };
   for (const [tag, tagLabel, re] of TAGS) if (re.test(text)) return { tag, tagLabel };
   return { tag: "update", tagLabel: "Update" };
 }
+function endChat(id) { if (S.chat === id) S.chat = null; }
+/** Same rules as the bot: "12:30 PM", "6:30 PM - 8:30 PM", optional "11/8" first. */
+function parseChefTime(text, o) {
+  const re = /(\d{1,2})(?::(\d{2}))?\s*([ap])\.?\s?m\.?|\bnoon\b/gi, ts = [];
+  let m; const raw = String(text);
+  while ((m = re.exec(raw))) { if (/noon/i.test(m[0])) { ts.push("12:00"); continue; } let h = +m[1] % 12; if (m[3].toLowerCase() === "p") h += 12; ts.push(String(h).padStart(2, "0") + ":" + (m[2] || "00")); }
+  if (!ts.length) return null;
+  const dm = /(\d{1,2})[\/-](\d{1,2})/.exec(raw.replace(re, " "));
+  let day = o.eventDate;
+  if (dm) { const y = +o.eventDate.slice(0, 4); day = `${y}-${String(+dm[1]).padStart(2, "0")}-${String(+dm[2]).padStart(2, "0")}`; o.eventDate = day; }
+  const dl = dateLabel(day) + ", ";
+  if (o.type === "lds") {
+    let end = ts[1];
+    if (!end) { const r = /(\d{1,2}:\d{2} [AP]M) - (\d{1,2}:\d{2} [AP]M)/.exec(o.requestedTime || ""); const to24 = (l) => { const q = /(\d+):(\d+) ([AP])/.exec(l); let h = +q[1] % 12; if (q[3] === "P") h += 12; return h * 60 + +q[2]; }; const len = r ? to24(r[2]) - to24(r[1]) : 120; end = hhmm(mins(ts[0]) + (len > 0 ? len : 120)); }
+    return `${dl}LIVE Dose serving ${t12(ts[0])} - ${t12(end)}`;
+  }
+  return `${dl}pickup at ${t12(ts[0])}${ts[1] ? " - " + t12(ts[1]) : ""}`;
+}
 function tell(text, extra) { S.inbox.unshift({ id: Math.random().toString(36).slice(2), at: stamp(), text, read: false, ...(extra || {}), ...classify(text, extra && extra.header) }); }
 function chefLog(text) { S.chefLog.unshift(stamp() + " · " + text); }
 function sheetRow(o) {
-  const items = o.type === "custom" ? "CUSTOM REQUEST: " + o.request : o.lines.map((l) => l.kind === "lds" ? `LIVE Dose Station: ${l.detail}${l.travelFee ? ` (+$${l.travelFee.toFixed(2)} travel)` : ""}${l.note ? ` (note: ${l.note})` : ""}` : `${l.qtyLabel || l.qty}x ${l.title}${l.qty % 1 ? " (half tray)" : ""}${l.note ? ` (note: ${l.note})` : ""}`).join("; ");
+  const items = o.type === "custom" ? "CUSTOM REQUEST: " + o.request : o.lines.map((l) => l.kind === "lds" ? `LIVE Dose Station: ${l.detail}${l.travelFee ? ` (+$${l.travelFee.toFixed(2)} travel)` : ""}${l.extFee ? ` (+$${l.extFee.toFixed(2)} for ${EXT.minutes} extra min)` : ""}${l.note ? ` (note: ${l.note})` : ""}` : `${l.qtyLabel || l.qty}x ${l.title}${l.qty % 1 ? " (half tray)" : ""}${l.note ? ` (note: ${l.note})` : ""}`).join("; ");
   const row = S.sheet.find((r) => r.id === o.id);
   const data = { id: o.id, ts: o.createdAt, name: S.user ? S.user.first + " " + S.user.last : "", phone: S.user ? "1" + S.user.phone : "", items, subtotal: o.subtotal.toFixed(2), fulfillment: o.fulfillment || "custom", address: o.address || "", time: o.requestedTime || "", status: o.status, payment: payText(o) };
   if (row) Object.assign(row, data); else S.sheet.unshift(data);
@@ -530,7 +557,11 @@ function orderDetail(id) {
   const lines = o.lines.map((l) => `<div class="line"><div><b>${l.kind === "lds" ? l.title : (l.qtyLabel || l.qty) + " × " + esc(l.title)}</b>${l.kind === "lds" ? `<div class="small muted">${esc(l.detail)}</div>` : ""}${l.note ? `<div class="small muted">“${esc(l.note)}”</div>` : ""}</div><span class="r num">${money(l.total, true)}</span></div>`).join("");
   const closed = o.status.includes("Released") ? "This order was released because the deposit didn't arrive in time. Call Chef if you'd still like the date." : o.status.includes("Quote Declined") ? "You declined this quote." : "Chef isn't able to take this order. Please call to talk it through, or try another date.";
   return navBar(o.id, back("Orders")) + `<div class="body"><div class="stack" style="padding:8px 16px 28px;gap:20px">
-    <div class="stack" style="gap:6px"><div>${pill(o)}</div><h2 class="h-big" style="font-size:27px">${esc(o.title)}</h2>${o.requestedTime ? `<div class="muted">${esc(o.requestedTime)}</div>` : ""}</div>
+    <div class="stack" style="gap:6px"><div>${pill(o)}</div><h2 class="h-big" style="font-size:27px">${esc(o.title)}</h2>${o.requestedTime ? `<div class="muted">${esc(o.stage === "review" && o.requestedTimeOriginal ? o.requestedTimeOriginal : o.requestedTime)}</div>` : ""}</div>
+    ${o.timeChange && o.stage !== "review" ? `<div class="notice warn">Chef has set your time to ${esc(o.timeChange.to)}. You asked for ${esc(o.timeChange.from)}.</div>` : ""}
+    ${S.chat === o.id || (o.chat || []).length ? `<div class="panel"><div class="spread"><div class="h-card">Messages with Chef</div>${S.chat === o.id ? `<span class="pill act">Chef is waiting</span>` : ""}</div>
+      ${(o.chat || []).map((m) => `<div class="cbub ${m.from === "chef" ? "them" : "me"}"><span class="small muted">${m.from === "chef" ? "Chef" : "You"}</span><span class="t">${esc(m.text)}</span></div>`).join("")}
+      ${S.chat === o.id ? `<div class="row"><input class="field" id="f-reply-${o.id}" data-in="reply:${o.id}" placeholder="Reply to Chef" value="${esc(draft["reply:" + o.id] || "")}"><button class="btn" style="flex:0 0 auto;width:auto;padding:0 18px" data-a="custreply" data-x="${o.id}">Send</button></div><div class="small muted">Chef gets this on WhatsApp right away.</div>` : `<div class="small muted">Chef has closed this chat. Use Ask a question in Account to message Chef.</div>`}</div>` : ""}
     ${o.stage === "closed" ? `<div class="notice bad">${closed}</div>` : tiffin(o)}
     ${action}
     <div class="panel"><div class="h-card">Details</div>${o.type === "custom" ? `<div>${esc(o.request)}</div>` : ""}${lines}${o.subtotal ? `<div class="line" style="border-top:1px solid var(--line);padding-top:10px"><b>Total</b><b class="r num">${money(o.subtotal, true)}</b></div>` : ""}${o.address ? `<div class="small">📍 ${esc(o.address)}</div>` : ""}${o.type === "catering" ? `<button class="btn soft" data-a="reorder" data-x="${o.id}">Order these again</button>` : ""}</div>
@@ -540,10 +571,10 @@ function orderDetail(id) {
 
 function tagChip(m) {
   if (!m.tag || m.tag === "update") return "";
-  const tone = ["approved", "paid"].includes(m.tag) ? "good" : ["declined", "released", "not_received"].includes(m.tag) ? "bad" : ["deposit_due", "quote"].includes(m.tag) ? "act" : "";
+  const tone = ["approved", "paid"].includes(m.tag) ? "good" : ["declined", "released", "not_received"].includes(m.tag) ? "bad" : ["deposit_due", "quote", "chef_message"].includes(m.tag) ? "act" : "";
   return `<span class="pill ${tone}" style="margin-bottom:6px">${esc(m.tagLabel)}</span>\n`;
 }
-const FILTERS = { all: ["All", () => true], decisions: ["Approvals & declines", (m) => ["approved", "declined", "quote", "released"].includes(m.tag)], payments: ["Payments", (m) => ["deposit_due", "paid", "not_received", "screenshot", "released"].includes(m.tag)] };
+const FILTERS = { all: ["All", () => true], decisions: ["Approvals & declines", (m) => ["approved", "declined", "quote", "released"].includes(m.tag)], messages: ["Messages from Chef", (m) => m.tag === "chef_message"], payments: ["Payments", (m) => ["deposit_due", "paid", "not_received", "screenshot", "released"].includes(m.tag)] };
 function messagesScreen() {
   if (!S.user) return navBar("Notifications") + gate("Sign in to get Chef's approvals, deposit requests and updates about your orders.");
   if (!S.inbox.length) return navBar("Notifications") + `<div class="body"><div class="stack pad" style="text-align:center;padding-top:100px"><div class="h-sec">No notifications yet</div><div class="muted">Chef's approvals, deposit requests and updates about your orders will show up here.</div></div></div>`;
@@ -553,7 +584,7 @@ function messagesScreen() {
   const items = S.inbox.filter((m) => FILTERS[f][1](m)).map((m) => {
     const o = m.orderId && S.orders.find((x) => x.id === m.orderId);
     const actions = m.quoteFor && o && o.stage === "quote_ready" ? `<div class="row" style="margin-top:10px"><button class="btn soft" data-a="quote" data-x="${m.quoteFor}" data-y="no">Decline</button><button class="btn" data-a="quote" data-x="${m.quoteFor}" data-y="yes">Accept</button></div>` : "";
-    return `<div class="bubble ${m.read ? "" : "unread"}"><span class="mark"></span><div class="b">${tagChip(m)}${m.header ? `<b>${esc(m.header)}</b>\n` : ""}${esc(m.text)}${actions}<div class="small muted" style="margin-top:8px;display:flex;justify-content:space-between"><span>${m.at}</span>${o ? `<button class="link small" data-a="goorder" data-x="${o.id}">View order</button>` : ""}</div></div></div>`;
+    return `<div class="bubble ${m.read ? "" : "unread"}"><span class="mark"></span><div class="b">${tagChip(m)}${m.header ? `<b>${esc(m.header)}</b>\n` : ""}${esc(m.text)}${actions}<div class="small muted" style="margin-top:8px;display:flex;justify-content:space-between"><span>${m.at}</span>${o ? `<button class="link small" data-a="goorder" data-x="${o.id}">${m.tag === "chef_message" && S.chat === o.id ? "Reply" : "View order"}</button>` : ""}</div></div></div>`;
   }).join("") || `<div class="muted">Nothing here yet.</div>`;
   return navBar("Notifications") + `<div class="body"><div class="stack" style="padding:8px 16px 24px;gap:14px">${chips}${items}</div></div>`;
 }
@@ -619,6 +650,7 @@ function ldsSheet(sh) {
       <div class="line"><div><div class="h-card" style="font-size:17px">${LDS.mdTitle}</div><div class="small muted">${LDS.mdDescription}</div></div><b class="r num" style="font:800 24px var(--f-display)">${sh.md}</b></div>
       <div class="line" style="border-top:1px solid var(--line);padding-top:12px"><div><div class="h-card" style="font-size:17px">${LDS.odTitle}</div><div class="small muted">${LDS.odDescription}</div></div><b class="r num" style="font:800 24px var(--f-display)">${sh.total - sh.md}</b></div>
       <div class="line" style="align-items:center"><span class="small muted">${LDS.mdTitle}, in steps of ${LDS.increment}</span><span class="r">${stepper("md", sh.md, 0, sh.total, LDS.increment)}</span></div></div>
+    <div class="panel"><b>On-site serving times</b>${SESSIONS.map((w) => `<div class="line"><span class="muted">${w.label}</span><span class="r num">${t12(w.start)} - ${t12(w.end)}</span></div>`).join("")}<div class="small muted">Need longer? Add ${EXT.minutes} extra minutes for ${money(EXT.fee)} when you book.</div><div class="small muted">${extraDoseNote()}</div></div>
     <label class="stack" style="gap:8px"><b>Notes for the crew (optional)</b><textarea class="field" id="f-ldsnote" data-in="ldsnote" placeholder="Spice level, timing, setup space…">${esc(draft.ldsnote || "")}</textarea></label>
     <div class="notice">Travel: first ${LDS.travelFreeMiles} miles included, then $${LDS.travelFeePerBlock} per ${LDS.travelBlockMiles} miles. You'll see the exact fee once you enter the event address.</div>
     <div class="notice warn">Delays on the event side (late access, space not ready) are charged at ${money(LDS.delayFeePerHour)}/hr.</div>
@@ -669,16 +701,23 @@ function checkoutSheet(sh) {
       <div class="row"><input class="field" id="f-addr" data-in="addr" placeholder="Street, town, ZIP" value="${esc(draft.addr || "")}"><button class="link" data-a="checkaddr">Check</button></div>${res}</div>`;
   }
   sections += `<div class="stack"><div class="h-sec" style="font-size:22px">Date</div><div class="datechips">${dates.map((d) => { const [wd, md] = dateLabel(d.date).split(", "); return `<button class="opt ${sh.date === d.date ? "on" : ""}" data-a="date" data-x="${d.date}" aria-pressed="${sh.date === d.date}"><span class="small" style="font-weight:600">${wd}</span><b>${md}</b></button>`; }).join("")}</div></div>`;
-  if (date) sections += `<div class="stack" style="gap:10px"><div class="h-sec" style="font-size:22px">${isLDS ? "Crew arrival" : ful === "delivery" ? "Delivery window" : "Pickup time"}</div>${date.slots.map((s) => `<button class="choice ${sh.slot === s.id ? "on" : ""}" data-a="slot" data-x="${s.id}"><span class="radio"></span><span><b>${s.title}</b>${s.sub ? ` <span class="small muted">${s.sub}</span>` : ""}</span></button>`).join("")}</div>`;
+  if (date) sections += `<div class="stack" style="gap:10px"><div class="h-sec" style="font-size:22px">${isLDS ? "On-site serving time" : ful === "delivery" ? "Delivery window" : "Pickup time"}</div>${date.slots.map((s) => `<button class="choice ${sh.slot === s.id ? "on" : ""}" data-a="slot" data-x="${s.id}"><span class="radio"></span><span><b>${s.title}</b>${s.sub ? ` <span class="small muted">${s.sub}</span>` : ""}</span></button>`).join("")}</div>`;
+  if (isLDS && slot) {
+    const [st] = slot.id.slice(5).split("-");
+    sections += `<div class="stack" style="gap:10px"><div class="h-sec" style="font-size:22px">Your LIVE Dose schedule</div>
+      <div class="panel"><div class="line"><span class="muted">Crew arrives to set up</span><span class="r">about ${t12(hhmm(mins(st) - LDS.setupMinutes))}</span></div><div class="line"><span class="muted">Serving on site</span><span class="r">${slot.title}</span></div><div class="small muted">${extraDoseNote()}</div></div>
+      <div>Need longer? Add ${EXT.minutes} extra minutes of serving for ${money(EXT.fee)}.</div>
+      <div class="pick" style="grid-template-columns:1fr 1fr"><button class="opt ${!sh.extend ? "on" : ""}" data-a="extend" data-x="no" aria-pressed="${!sh.extend}" style="font-weight:700">No, that's fine</button><button class="opt ${sh.extend ? "on" : ""}" data-a="extend" data-x="yes" aria-pressed="${!!sh.extend}" style="font-weight:700">Add ${EXT.minutes} min +${money(EXT.fee)}</button></div></div>`;
+  }
 
   let review = "", total = 0;
   if (ready) {
     const o = buildOrder(sh, date, slot); total = o.subtotal;
     review = `<div class="stack"><div class="h-sec" style="font-size:22px">Review</div>
       <div class="panel">${o.lines.map((l) => `<div class="line"><div><b>${l.kind === "lds" ? l.title : (l.qtyLabel || l.qty) + " × " + esc(l.title)}</b>${l.kind === "lds" ? `<div class="small muted">${l.detail}</div>` : ""}${l.note ? `<div class="small muted">“${esc(l.note)}”</div>` : ""}</div><span class="r num">${money(l.total, true)}</span></div>`).join("")}
-      ${o.travelFee ? `<div class="small muted">Includes ${money(o.travelFee)} travel (first ${LDS.travelFreeMiles} miles included, then $${LDS.travelFeePerBlock} per ${LDS.travelBlockMiles} miles)</div>` : ""}${o.travelUnknown ? `<div class="small muted">Chef will add any travel fee after checking the address.</div>` : ""}
+      ${o.extFee ? `<div class="small muted">Includes ${money(o.extFee)} for ${EXT.minutes} extra minutes of serving</div>` : ""}${o.travelFee ? `<div class="small muted">Includes ${money(o.travelFee)} travel (first ${LDS.travelFreeMiles} miles included, then $${LDS.travelFeePerBlock} per ${LDS.travelBlockMiles} miles)</div>` : ""}${o.travelUnknown ? `<div class="small muted">Chef will add any travel fee after checking the address.</div>` : ""}
       <div class="line" style="border-top:1px solid var(--line);padding-top:10px"><b>Subtotal</b><b class="r num">${money(o.subtotal, true)}</b></div></div>
-      <div class="panel"><div>📅 ${esc(o.requestedTime)}</div>${o.schedule ? `<div class="small" style="padding-left:24px"><div class="line"><span class="muted">Crew arrives</span><span class="r">${o.schedule.arrival}</span></div><div class="line"><span class="muted">First dose ready</span><span class="r">${o.schedule.firstDose}</span></div><div class="line"><span class="muted">Last dose ready</span><span class="r">${o.schedule.lastDose}</span></div><div class="line"><span class="muted">Wrap-up complete</span><span class="r">${o.schedule.wrapUp}</span></div></div>` : ""}${o.address ? `<div>📍 ${esc(o.address)}</div>` : ""}${o.outOfRange ? `<div style="color:var(--tur-ink)">Outside our usual range - Chef will decide</div>` : ""}${o.fulfillment === "delivery" && !isLDS ? `<div class="small muted">Delivery fee based on distance - Chef adds it when confirming.</div>` : ""}<div>💵 ${S.settings.deposit ? `50% Zelle deposit after Chef approves, balance at ${isLDS ? "the event" : o.fulfillment}.` : `Payment is collected at ${isLDS ? "the event" : o.fulfillment}.`}</div></div>
+      <div class="panel"><div>📅 ${esc(o.requestedTime)}</div>${o.schedule ? `<div class="small" style="padding-left:24px"><div class="line"><span class="muted">Crew arrives</span><span class="r">about ${o.schedule.arrival}</span></div><div class="line"><span class="muted">Serving on site</span><span class="r">${o.schedule.serving}</span></div>${o.schedule.extra ? `<div class="line"><span class="muted">Extra time</span><span class="r">${o.schedule.extra} min</span></div>` : ""}</div>` : ""}${o.address ? `<div>📍 ${esc(o.address)}</div>` : ""}${o.outOfRange ? `<div style="color:var(--tur-ink)">Outside our usual range - Chef will decide</div>` : ""}${o.fulfillment === "delivery" && !isLDS ? `<div class="small muted">Delivery fee based on distance - Chef adds it when confirming.</div>` : ""}<div>💵 ${S.settings.deposit ? `50% Zelle deposit after Chef approves, balance ${isLDS ? "on the day of your event" : "at " + o.fulfillment}.` : `Payment is collected ${isLDS ? "on the day of your event" : "at " + o.fulfillment}.`}</div></div>
       <div class="small muted">Nothing is charged now. Chef reviews every order and you'll get the answer here in the app.</div></div>`;
   }
   return navBar("Checkout", `<button class="link" data-a="view" data-x="cart">‹ Order</button>`, close()) +
@@ -688,22 +727,24 @@ function checkoutSheet(sh) {
 
 function buildOrder(sh, date, slot) {
   const isLDS = !!S.cart.lds, ev = dateLabel(date.date);
-  let lines, address = "", outOfRange = null, travel = 0, travelUnknown = false, requestedTime, schedule = null, distance = null;
+  let extFee = 0, lines, address = "", outOfRange = null, travel = 0, travelUnknown = false, requestedTime, schedule = null, distance = null;
   if (isLDS) {
     const c = S.cart.lds, a = sh.addr;
     if (a.status === "match") { address = a.label; distance = a.miles; travel = a.fee || 0; if (!a.inRange) outOfRange = { miles: a.miles, max: ST.delivery.ldsMaxMiles }; }
     else { address = (draft.addr || "").trim(); travelUnknown = true; }
-    lines = [{ kind: "lds", title: "LIVE Dose Station", detail: ldsDetail(c), note: c.note, total: c.price + travel, travelFee: travel }];
-    const start = slot.id.slice(5).split("-")[0];
-    schedule = ldsSchedule(start, c.total);
-    requestedTime = `${ev}, crew arrival ${schedule.arrival} - wrap-up ${schedule.wrapUp} (first dose ${schedule.firstDose}, last dose ${schedule.lastDose})`;
+    extFee = sh.extend ? EXT.fee : 0;
+    lines = [{ kind: "lds", title: "LIVE Dose Station", detail: ldsDetail(c), note: c.note, total: c.price + travel + extFee, travelFee: travel, extFee }];
+    const [start, end] = slot.id.slice(5).split("-");
+    const endLbl = t12(hhmm(mins(end) + (sh.extend ? EXT.minutes : 0)));
+    schedule = { arrival: t12(hhmm(mins(start) - LDS.setupMinutes)), serving: `${t12(start)} - ${endLbl}`, extra: sh.extend ? EXT.minutes : 0 };
+    requestedTime = `${ev}, LIVE Dose serving ${t12(start)} - ${endLbl}${sh.extend ? ` (incl. ${EXT.minutes} extra min)` : ""}`;
   } else {
     lines = S.cart.lines.map((l) => ({ kind: "catering", id: l.id, title: l.title, qty: l.qty, qtyLabel: qtyText(l.qty), note: l.note, total: trayTotal(l.price, l.qty) }));
-    if (slot.id === "slot:pickup-am" || slot.id === "slot:pickup-pm") requestedTime = `${ev}, ${slot.id === "slot:pickup-am" ? "pickup by 11:30 AM (lunch)" : "pickup by 6:00 PM (dinner)"}`;
+    if (slot.id === "slot:pickup-am" || slot.id === "slot:pickup-pm") requestedTime = `${ev}, ${slot.id === "slot:pickup-am" ? "pickup by 11:30 AM (lunch)" : "pickup by 6:30 PM (dinner)"}`;
     else { const [a, b] = slot.id.slice(5).split("-"); requestedTime = `${ev}, ${t12(a)} - ${t12(b)}`; address = sh.addr && sh.addr.status === "match" ? sh.addr.label : (draft.addr || "").trim(); distance = sh.addr && sh.addr.miles; }
   }
   const subtotal = lines.reduce((s, l) => s + l.total, 0);
-  return { lines, subtotal, address, outOfRange, travelFee: travel, travelUnknown, requestedTime, schedule, distance, eventDate: date.date, eventLabel: ev, type: isLDS ? "lds" : "catering", fulfillment: isLDS || (sh.ful === "delivery" && !S.settings.pickupOnly) ? "delivery" : "pickup" };
+  return { extFee, lines, subtotal, address, outOfRange, travelFee: travel, travelUnknown, requestedTime, schedule, distance, eventDate: date.date, eventLabel: ev, type: isLDS ? "lds" : "catering", fulfillment: isLDS || (sh.ful === "delivery" && !S.settings.pickupOnly) ? "delivery" : "pickup" };
 }
 
 function placedSheet(sh) {
@@ -760,12 +801,17 @@ function chefHTML() {
   const name = S.user ? `${S.user.first} ${S.user.last}` : "customer", ph = S.user ? "1" + S.user.phone : "";
   const cards = [];
   S.orders.forEach((o) => {
-    const lines = o.type === "custom" ? "" : o.lines.map((l) => l.kind === "lds" ? `- LIVE Dose Station: ${l.detail}${l.note ? ` (${l.note})` : ""} (+$${LDS.setupFee.toFixed(2)} setup)${l.travelFee ? ` (+$${l.travelFee.toFixed(2)} travel)` : ""} ($${l.total.toFixed(2)})` : `- ${l.qty}x ${l.title}${l.note ? ` (${l.note})` : ""} ($${l.total.toFixed(2)})`).join("\n");
+    const lines = o.type === "custom" ? "" : o.lines.map((l) => l.kind === "lds" ? `- LIVE Dose Station: ${l.detail}${l.note ? ` (${l.note})` : ""} (+$${LDS.setupFee.toFixed(2)} setup)${l.travelFee ? ` (+$${l.travelFee.toFixed(2)} travel)` : ""}${l.extFee ? ` (+$${l.extFee.toFixed(2)} for ${EXT.minutes} extra min)` : ""} ($${l.total.toFixed(2)})` : `- ${l.qty}x ${l.title}${l.note ? ` (${l.note})` : ""} ($${l.total.toFixed(2)})`).join("\n");
     if (o.stage === "review") {
       const range = o.outOfRange ? `\nOUTSIDE RANGE: ~${o.outOfRange.miles} mi (your limit is ${o.outOfRange.max}) - customer asked for an exception` : "";
       cards.push(`<div class="msg"><div class="hd">New app order needs approval</div>Order ${o.id} from ${esc(name)} (${ph}) via the FTR app\n${esc(lines)}\nSubtotal: $${o.subtotal.toFixed(2)}\n${o.fulfillment === "delivery" ? "Deliver to: " + esc(o.address) + (o.distance != null ? ` (~${o.distance} mi, verified)` : " (NOT verified - please check)") + (o.type === "lds" ? "" : "\n(Add delivery fee via Edit price)") : "Pickup"}\nRequested time: ${esc(o.requestedTime)}${range}
+${o.timeChange ? `\nTime changed by you - customer asked: ${esc(o.timeChange.from)}` : ""}
+        ${(o.chat || []).length ? `<div class="chatlog">${o.chat.map((m) => `<div class="${m.from}"><b>${m.from === "chef" ? "You" : esc(name.split(" ")[0])}:</b> ${esc(m.text)}</div>`).join("")}</div>` : ""}
+        ${S.ui.editMenu === o.id ? `<div class="btns"><button data-a="chef-editp" data-x="${o.id}">Change price</button><button data-a="chef-editt" data-x="${o.id}">Change time</button><button data-a="chef-msg" data-x="${o.id}">Message customer</button></div>` : ""}
         ${S.ui.editPrice === o.id ? `<div class="inline"><input id="f-price" data-in="price" inputmode="decimal" placeholder="New total, e.g. ${(o.subtotal + 50).toFixed(0)}"><button data-a="chef-price" data-x="${o.id}">Save price</button></div>` : ""}
-        <div class="btns"><button data-a="chef-approve" data-x="${o.id}">Approve</button><button data-a="chef-edit" data-x="${o.id}">Edit price</button><button data-a="chef-decline" data-x="${o.id}">Decline</button></div></div>`);
+        ${S.ui.editTime === o.id ? `<div class="inline"><input id="f-ctime" data-in="ctime" placeholder="${o.type === "lds" ? "6:30 PM - 8:30 PM" : "12:30 PM"}"><button data-a="chef-time" data-x="${o.id}">Save time</button></div>${S.ui.timeErr === o.id ? `<div class="small" style="color:var(--bad)">Sorry, I couldn't read that time. Reply like "12:30 PM" or "6:30 PM - 8:30 PM" (with AM/PM).</div>` : ""}` : ""}
+        ${S.chat === o.id ? `<div class="inline"><input id="f-cmsg" data-in="cmsg" placeholder="Type a message to ${esc(name.split(" ")[0])}"><button data-a="chef-send" data-x="${o.id}">Send</button></div>` : ""}
+        <div class="btns"><button data-a="chef-approve" data-x="${o.id}">Approve</button>${S.chat === o.id ? `<button data-a="chef-endchat" data-x="${o.id}">End chat</button>` : `<button data-a="chef-edit" data-x="${o.id}">Edit / message</button>`}<button data-a="chef-decline" data-x="${o.id}">Decline</button></div></div>`);
     }
     if (o.stage === "deposit_review") {
       cards.push(`<div class="msg"><div class="hd">Deposit screenshot</div>${esc(name)} (${ph}) sent a Zelle screenshot for ${o.id}.\nDeposit due: ${money(o.payment.depositDue, true)} (order total ${money(o.subtotal, true)})\n\nOpen your bank app - tap Payment received only once you see the money.
@@ -785,14 +831,14 @@ function chefHTML() {
   S.questions && S.questions.forEach((q) => cards.push(`<div class="msg">Question from ${esc(name)} (${ph}) via the FTR app:\n\n"${esc(q)}"\n\nReply to them directly at that number.</div>`));
   const rows = S.sheet.map((r) => `<tr><td>${esc(r.ts)}</td><td>${r.id}</td><td>${esc(r.name)}</td><td>${r.phone}</td><td>${esc(r.items)}</td><td class="num">${r.subtotal}</td><td>${r.fulfillment}</td><td>${esc(r.address)}</td><td>${esc(r.time)}</td><td>${esc(r.status)}</td><td>${esc(r.payment)}</td></tr>`).join("");
   const sw = (k, label, hint) => `<div class="toggle" style="font-weight:500"><span><b>${label}</b><br><span class="small muted">${hint}</span></span><button class="switch ${S.settings[k] ? "on" : ""}" role="switch" aria-checked="${S.settings[k]}" aria-label="${label}" data-a="setting" data-x="${k}"></button></div>`;
-  const dayRows = baseDates().map((d, i) => `<div class="row" style="gap:6px;flex-wrap:wrap"><b style="width:92px;flex:none">${dateLabel(d)}</b>${[["am", "Lunch"], ["pm", "Dinner"], ["delivery", "Delivery"], ["lds", "LIVE Dose"]].map(([k, l]) => `<button class="opt ${S.days[i][k] ? "on" : ""}" style="padding:5px 10px;border-radius:99px;font-size:13px;font-weight:600${k === "delivery" && S.settings.pickupOnly ? ";opacity:.5" : ""}" data-a="day" data-x="${i}" data-y="${k}" aria-pressed="${S.days[i][k]}">${l}</button>`).join("")}</div>`).join("");
+  const dayRows = baseDates().map((d, i) => `<div class="row" style="gap:6px;flex-wrap:wrap"><b style="width:92px;flex:none">${dateLabel(d)}</b>${[["am", "Lunch 11:30"], ["pm", "Dinner 6:30"], ...(S.settings.pickupOnly ? [] : [["delivery", "Delivery"]]), ["ldsL", "LIVE 11–1"], ["ldsE", "LIVE 7–9"]].map(([k, l]) => `<button class="opt ${S.days[i][k] ? "on" : ""}" style="padding:5px 10px;border-radius:99px;font-size:13px;font-weight:600${k === "delivery" && S.settings.pickupOnly ? ";opacity:.5" : ""}" data-a="day" data-x="${i}" data-y="${k}" aria-pressed="${S.days[i][k]}">${l}</button>`).join("")}</div>`).join("");
   const admin = `<button class="ghost" data-a="kitchen" style="align-self:flex-start">Open Chef's Kitchen on the phone</button>
   <div class="panel" style="background:var(--wa-bubble)"><div style="font:700 18px var(--f-display)">Admin switches <span class="small muted" style="font-family:var(--f-body);font-weight:400">· /admin › Setup and Calendar</span></div><div class="small muted">These stand in for your real admin page. The real app reads the menu and these settings straight from your bot server, so it always matches what you set there.</div>
     <div class="stack" style="gap:12px;margin-top:10px">
       ${sw("pickupOnly", "Catering: pickup only", "Off = customers can choose delivery")}
       ${sw("halfTrays", "Half-tray orders", "Half tray = 65% of a full tray; minimum $100")}
       ${sw("deposit", "Ask for a Zelle deposit", "Off = orders are confirmed when you approve")}
-      <div class="stack" style="gap:8px"><b class="small">Open dates</b>${dayRows}${S.settings.pickupOnly ? `<span class="small muted">Delivery only shows to customers when pickup-only is off.</span>` : ""}</div>
+      <div class="stack" style="gap:8px"><b class="small">Open dates</b>${dayRows}<span class="small muted">Standard times on every chef day: pickup 11:30 AM and 6:30 PM; LIVE Dose serving 11 AM – 1 PM and 7 PM – 9 PM, plus ${EXT.minutes} extra minutes for ${money(EXT.fee)} if the customer wants it.</span></div>
     </div></div>`;
   return `<div class="chef-head"><span class="mark"></span><h2>Chef's WhatsApp</h2><span class="small muted">What your bot sends you</span></div>${admin}
     ${cards.length ? cards.join("") : `<div class="empty">Nothing waiting. Place an order on the phone and the approval prompt appears here.</div>`}
@@ -803,7 +849,8 @@ function chefHTML() {
       <li>Add 2 trays of Bisi Bele Bhath, check out, sign in (the code arrives as a text at the top of the phone), then tap Approve here.</li>
       <li>Upload any picture as the Zelle screenshot, then tap Payment received.</li>
       <li>Add Palya - the app won't let you add it without choosing a vegetable.</li>
-      <li>Plan a 150-plate LIVE Dose Station and try the Philadelphia address to see the out-of-range request.</li>
+      <li>Plan a 150-plate LIVE Dose Station, pick the 7 PM session and add 30 minutes for $100. Try the Philadelphia address to see the out-of-range request.</li>
+      <li>On a waiting order, tap Edit / message → Change time (e.g. "12:30 PM"), then Message customer, reply on the phone, and Approve.</li>
       <li>Ask for a custom quote, send a price from here, and accept it in Messages.</li>
     </ul></details>`;
 }
@@ -874,6 +921,13 @@ const A = {
   },
   date(x) { const sh = S.ui.sheet; sh.date = x; sh.slot = null; const isLDS = !!S.cart.lds; const d = chefDates().find((c) => c.date === x); const sl = slotsFor(d, isLDS ? "lds" : "catering", isLDS ? S.cart.lds.total : 0, isLDS ? "delivery" : sh.ful || "pickup"); if (sl.length === 1) sh.slot = sl[0].id; render(); },
   slot(x) { S.ui.sheet.slot = x; render(); },
+  extend(x) { S.ui.sheet.extend = x === "yes"; render(); },
+  custreply(x) {
+    const o = S.orders.find((q) => q.id === x), t = (draft["reply:" + x] || "").trim();
+    if (!t || S.chat !== x) return;
+    o.chat = (o.chat || []).concat([{ from: "customer", text: t, at: stamp() }]); draft["reply:" + x] = "";
+    chefLog(`Reply about ${o.id} - ${S.user ? S.user.first + " " + S.user.last : "Customer"} says: ${t} (Your next message goes to them.)`); render();
+  },
   place() {
     const sh = S.ui.sheet, isLDS = !!S.cart.lds;
     const dates = chefDates().map((d) => ({ ...d, slots: slotsFor(d, isLDS ? "lds" : "catering", isLDS ? S.cart.lds.total : 0, isLDS ? "delivery" : sh.ful || "pickup") }));
@@ -958,9 +1012,11 @@ const A = {
   // chef
   "chef-approve"(x) {
     const o = S.orders.find((q) => q.id === x);
+    endChat(x);
+    const tnote = `\nTime: ${o.requestedTime}` + (o.timeChange ? `\n\nPlease note: Chef has set your time to ${o.timeChange.to} (you asked for ${o.timeChange.from}).` : "");
     if (!S.settings.deposit) {
       setStatus(o, "Confirmed", "confirmed");
-      tell(`Good news - your order ${o.id} is confirmed! Subtotal: $${o.subtotal.toFixed(2)}. We'll have it ready for your requested time. Payment will be collected at ${o.fulfillment}. See you then!`, { orderId: o.id });
+      tell(`Good news - your order ${o.id} is confirmed! Subtotal: $${o.subtotal.toFixed(2)}.${tnote}\n\nPayment will be collected ${o.type === "lds" ? "on the day of your event" : "at " + o.fulfillment}. See you then!`, { orderId: o.id });
       chefLog(`Order ${o.id} confirmed - customer notified (Zelle deposits are off).`);
       render();
       return;
@@ -968,12 +1024,38 @@ const A = {
     const dep = Math.round(o.subtotal * 50) / 100;
     o.payment = { state: "awaiting", depositDue: dep, balance: Math.round((o.subtotal - dep) * 100) / 100, deadline: deadlineFor(o).getTime() };
     setStatus(o, "Awaiting Deposit", "deposit_due");
-    tell(`Good news - Chef approved your order ${o.id}! Total: $${o.subtotal.toFixed(2)}.`, { orderId: o.id });
+    tell(`Good news - Chef approved your order ${o.id}! Total: $${o.subtotal.toFixed(2)}.${tnote}`, { orderId: o.id });
     tell(depositText(o), { orderId: o.id });
     chefLog(`Approved ${o.id}. Deposit ${money(dep, true)} requested.`);
     render();
   },
-  "chef-edit"(x) { S.ui.editPrice = S.ui.editPrice === x ? null : x; draft.price = ""; render(); },
+  "chef-edit"(x) { S.ui.editMenu = S.ui.editMenu === x ? null : x; S.ui.editPrice = null; S.ui.editTime = null; render(); },
+  "chef-editp"(x) { S.ui.editMenu = null; S.ui.editPrice = x; draft.price = ""; render(); },
+  "chef-editt"(x) { S.ui.editMenu = null; S.ui.editTime = x; S.ui.timeErr = null; draft.ctime = ""; render(); },
+  "chef-time"(x) {
+    const o = S.orders.find((q) => q.id === x), ch = parseChefTime(draft.ctime || "", o);
+    if (!ch) { S.ui.timeErr = x; render(); return; }
+    const from = (o.timeChange && o.timeChange.from) || o.requestedTime;
+    o.requestedTimeOriginal = from;
+    o.requestedTime = ch + " (set by Chef)";
+    o.timeChange = { from, to: ch };
+    S.ui.editTime = null; S.ui.timeErr = null; sheetRow(o);
+    chefLog(`Order ${o.id} time changed. Customer asked: ${from} · New time: ${ch}. They'll see it when you approve.`); render();
+  },
+  "chef-msg"(x) {
+    const o = S.orders.find((q) => q.id === x);
+    S.ui.editMenu = null; S.chat = x; draft.cmsg = "";
+    chefLog(`Chat with ${S.user ? S.user.first + " " + S.user.last : "the customer"} about ${o.id} is open. Type below - it goes from the FTR number.`); render();
+  },
+  "chef-send"(x) {
+    const o = S.orders.find((q) => q.id === x), t = (draft.cmsg || "").trim(); if (!t) return;
+    o.chat = (o.chat || []).concat([{ from: "chef", text: t, at: stamp() }]); draft.cmsg = "";
+    tell(`Message from Chef about your order ${o.id}:\n\n${t}\n\n(Tap Reply to answer Chef.)`, { orderId: o.id }); render();
+  },
+  "chef-endchat"(x) {
+    endChat(x); tell(`Thanks! Chef will confirm your order ${x} here shortly.`, { orderId: x });
+    chefLog(`Chat about ${x} ended. Approve or decline now?`); render();
+  },
   "chef-price"(x) {
     const v = parseFloat(String(draft.price || "").replace(/[^0-9.]/g, ""));
     if (!(v > 0)) return;
@@ -981,6 +1063,7 @@ const A = {
     chefLog(`New price for ${o.id}: ${money(v, true)}. Tap Approve to send it.`); render();
   },
   "chef-decline"(x) {
+    endChat(x);
     const o = S.orders.find((q) => q.id === x); setStatus(o, "Declined", "closed");
     tell(`Sorry, we're not able to take order ${o.id} right now. Please reach out to us directly, or type "menu" to try a different order.`, { orderId: o.id });
     chefLog(`Declined ${o.id} - customer notified.`); render();
@@ -1055,7 +1138,7 @@ const A = {
   day(x, y) {
     S.days[+x][y] = !S.days[+x][y];
     if (S.ui.sheet && S.ui.sheet.view === "checkout") { S.ui.sheet.date = null; S.ui.sheet.slot = null; }
-    chefLog(`Calendar: ${dateLabel(baseDates()[+x])} ${{ am: "Lunch pickup", pm: "Dinner pickup", delivery: "Delivery", lds: "LIVE Dose" }[y]} ${S.days[+x][y] ? "opened" : "closed"}.`);
+    chefLog(`Calendar: ${dateLabel(baseDates()[+x])} ${{ am: "Lunch pickup", pm: "Dinner pickup", delivery: "Delivery", ldsL: "LIVE Dose lunch session", ldsE: "LIVE Dose evening session" }[y]} ${S.days[+x][y] ? "opened" : "closed"}.`);
     render();
   },
   reset() { S = fresh(); Object.keys(draft).forEach((k) => delete draft[k]); render(true); }
