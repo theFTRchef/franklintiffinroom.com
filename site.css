@@ -70,6 +70,10 @@ p { margin: 0 0 1em; }
 .hero { padding: 56px 0 72px; }
 .hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; }
 @media (max-width: 880px) { .hero-grid { grid-template-columns: 1fr; gap: 36px; } }
+.welcome { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 40px; }
+.welcome p { margin: 0; }
+.welcome .tagline { margin-top: 6px; }
+.welcome .spaced { margin-top: 10px; }
 .namaste { position: relative; width: 120px; height: 108px; margin-bottom: 6px; }
 .namaste .hands { position: absolute; left: 22px; top: 0; width: 76px; height: auto; }
 .namaste .lotus { position: absolute; left: 0; top: 56px; width: 120px; height: 52px; overflow: visible; }
@@ -87,7 +91,7 @@ p { margin: 0 0 1em; }
 @keyframes bloom-l { from { opacity: 0; transform: rotate(40deg) scale(.4); } }
 @keyframes bloom-r { from { opacity: 0; transform: rotate(-40deg) scale(.4); } }
 .hello { display: flex; align-items: baseline; flex-wrap: wrap; gap: 14px; margin-bottom: 10px; }
-.tagline { font: italic 500 1.9rem/1 var(--serif); }
+.tagline { font: italic 500 2.2rem/1.1 var(--serif); }
 .spaced { font: 600 .82rem/1 var(--spaced); letter-spacing: .24em; text-transform: uppercase; color: var(--muted); }
 .hero h1 { font: 600 clamp(2.5rem, 5.6vw, 4.2rem)/1.02 var(--display); text-transform: uppercase; letter-spacing: .01em; max-width: 13ch; }
 .lede { font-size: 1.15rem; color: var(--muted); max-width: 50ch; margin-bottom: 26px; }
