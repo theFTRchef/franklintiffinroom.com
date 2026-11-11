@@ -458,10 +458,10 @@ function menuScreen() {
   }).join("");
   return navBar("", `<button class="link" data-a="selectmode">${S.ui.selecting ? "Cancel" : "Select dishes"}</button>`, "") +
   `<div class="body"><div class="stack" style="gap:0;padding-bottom:24px">
-    <div class="pad stack" style="padding-top:6px;padding-bottom:20px;gap:8px;align-items:center;text-align:center">${LOGO(34)}<div class="tagline">Bringing back the OG flavor of Masala Dose</div><div class="stack" style="gap:6px;align-items:center"><span style="font:italic 600 16px var(--f-display)">Multi Cuisine Personal Chef in Somerset, NJ</span><span class="veg"><i></i>100% Vegetarian</span></div></div>
+    <div class="pad stack" style="padding-top:6px;padding-bottom:20px;gap:8px;align-items:center;text-align:center">${LOGO(34)}<div class="tagline">Bringing back the OG flavor of Masale Dose</div><div class="stack" style="gap:6px;align-items:center"><span style="font:italic 600 16px var(--f-display)">Multi Cuisine Personal Chef in Somerset, NJ</span><span class="veg"><i></i>100% Vegetarian</span></div></div>
     <div class="lds" style="margin-bottom:26px">
       <span class="flag">★ Our flagship</span>
-      <div style="font:700 25px/1.15 var(--f-display)">Live on-site Masala Dose</div>
+      <div style="font:700 25px/1.15 var(--f-display)">Live on-site Masale Dose</div>
       <div>${LDS.mdTitle} and ${LDS.odTitle}, made fresh on the griddle at your event. 100, 150 or 200 dose.</div>
       <div><b class="num" style="font-size:18px">From ${money(ldsPrice(LDS.minTotal))}</b> <span class="small">incl. ${money(LDS.setupFee)} setup</span></div>
       <button class="btn" data-a="lds" ${dates.some((d) => d.liveDose.length) ? "" : "disabled"}>${S.cart.lds ? "Change your station" : "Plan your station"}</button>
